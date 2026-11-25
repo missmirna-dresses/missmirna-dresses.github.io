@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#5a2a3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="الفساتين">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<title>ميس ميرنا - الفساتين</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;-webkit-text-size-adjust:100%;font-family:Tahoma,Arial,sans-serif;font-size:19px;background:#faf5f3;color:#2b2326;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+header{background:#5a2a3c;color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
+header b{font-size:21px}
+.btn{font-family:inherit;font-size:20px;border:0;border-radius:12px;padding:14px 18px;background:#5a2a3c;color:#fff;width:100%;margin:6px 0}
+.btn.g{background:#2e7d4f}.btn.y{background:#d4a24c;color:#2b1a05}.btn.w{background:#e9dde1;color:#3a1524}.btn.r{background:#b3261e}
+input,select,textarea{font-family:inherit;font-size:20px;padding:12px;border:2px solid #d9c6cd;border-radius:10px;width:100%;background:#fff}
+label{display:block;font-size:16px;color:#6b4a57;margin:10px 0 3px}
+.wrap{padding:12px 14px}
+.dc{display:flex;gap:12px;background:#fff;border-radius:12px;box-shadow:0 1px 4px #0002;margin:10px 0;padding:8px;align-items:center}
+.dc img,.dc .ph{width:84px;height:110px;object-fit:cover;border-radius:8px;background:#f0e4e8;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#a88}
+.mut{color:#8a6f7a;font-size:15px}
+.bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #0003;display:flex;gap:10px}
+.bar .btn{margin:0}
+.msg{background:#eaf6ee;border-right:6px solid #2e7d4f;padding:10px 12px;border-radius:8px;margin:10px 0}
+.warn{background:#fff3cd;border-right:6px solid #d4a24c;padding:10px 12px;border-radius:8px;margin:10px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prev img{max-width:100%;max-height:320px;border-radius:10px;margin-top:8px}
+</style>
+</head>
+<body>
+<header><b>ميس ميرنا - الفساتين</b><span id="cnt"></span></header>
+<div id="v"></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+let db,D=[],meta={lastExport:null,next:1},cur=null,photo=null,q='';
+const open=()=>new Promise((res,rej)=>{const r=indexedDB.open('miss-mirna-mobile',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const get=k=>new Promise(r=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result)});
+const put=(k,v)=>new Promise((r,j)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=r;t.onerror=()=>j(t.error)});
+const persist=async()=>{await put('dresses',D);await put('meta',meta)};
+async function boot(){
+  db=await open();D=(await get('dresses'))||[];meta=(await get('meta'))||meta;
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+  if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+  list();
+}
+const code=n=>'D-'+String(n).padStart(3,'0');
+function nextFree(){let n=meta.next||1;while(D.some(d=>d.code===code(n)))n++;return n}
+function list(){
+  cur=null;photo=null;$('#cnt').textContent=D.length+' فستان';
+  const L=D.filter(d=>!q||(d.code+' '+d.old+' '+d.desc+' '+d.color).includes(q));
+  const un=D.filter(d=>!meta.lastExport||(d.mod||'')>meta.lastExport).length;
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),sa=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+  $('#v').innerHTML=`<div class="wrap">
+  ${ios&&!sa?'<div class="warn">مهم: قبل ما تسجل أي فستان اضغط زرار المشاركة (المربع والسهم) ثم "إضافة إلى الشاشة الرئيسية"، وافتح التطبيق من الأيقونة. اللي بيتسجل في سفاري مش بيظهر في الأيقونة.</div>':''}
+  <input id="q" placeholder="بحث بالكود أو الوصف أو اللون" value="${esc(q)}" oninput="q=this.value;list2()">
+  ${un?`<div class="warn">${un} فستان لسه ما اتبعتوش للكمبيوتر</div>`:(D.length?'<div class="msg">كل الفساتين اتبعتت ✔</div>':'')}
+  <div id="L">${L.map(row).join('')||'<div class="mut" style="margin:20px 0">لسه مفيش فساتين. اضغط "+ فستان جديد".</div>'}</div></div>
+  <div class="bar"><button class="btn y" onclick="edit(null)">+ فستان جديد</button><button class="btn g" onclick="exportFile()">إرسال للكمبيوتر</button></div>
+  <div class="wrap"><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
+}
+function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
+const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(d.code)}</b>${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div><div class="mut">${esc(d.color)} · إيجار ${esc(d.rent)} · بيع ${esc(d.sale)}</div></div></div>`;
+function edit(id){
+  cur=id?D.find(d=>d.uid===id):{uid:uid(),code:code(nextFree()),old:'',desc:'',color:'',rent:'',sale:'',notes:'',photo:''};
+  photo=cur.photo||'';
+  $('#v').innerHTML=`<div class="wrap">
+  <div class="two"><div><label>الكود الجديد</label><input id="c" value="${esc(cur.code)}"></div><div><label>الكود القديم</label><input id="o" value="${esc(cur.old)}"></div></div>
+  <label>الوصف / الموديل</label><input id="d" value="${esc(cur.desc)}">
+  <label>اللون</label><input id="l" value="${esc(cur.color)}">
+  <div class="two"><div><label>سعر الإيجار</label><input id="r" type="number" inputmode="numeric" value="${esc(cur.rent)}"></div><div><label>سعر البيع</label><input id="s" type="number" inputmode="numeric" value="${esc(cur.sale)}"></div></div>
+  <label>ملاحظات</label><input id="n" value="${esc(cur.notes)}">
+  <label>الصورة</label>
+  <div class="two"><button class="btn" onclick="$('#cam').click()">📷 كاميرا</button><button class="btn w" onclick="$('#gal').click()">🖼 من الصور</button></div>
+  <input type="file" id="cam" accept="image/*" capture="environment" hidden onchange="pick(this)">
+  <input type="file" id="gal" accept="image/*" hidden onchange="pick(this)">
+  <div class="prev" id="pv">${photo?`<img src="${photo}">`:''}</div>
+  <button class="btn g" onclick="saveD(false)">حفظ</button>
+  <button class="btn y" onclick="saveD(true)">حفظ وفستان تاني</button>
+  <button class="btn w" onclick="list()">رجوع</button>
+  ${id?`<button class="btn r" onclick="delD()">حذف الفستان</button>`:''}</div>`;
+  window.scrollTo(0,0);
+}
+function pick(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=800,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);photo=c.toDataURL('image/jpeg',0.72);$('#pv').innerHTML=`<img src="${photo}">`};im.src=r.result};r.readAsDataURL(f)}
+async function saveD(again){
+  const g=i=>$('#'+i).value.trim();
+  cur.code=g('c');cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.rent=g('r');cur.sale=g('s');cur.notes=g('n');cur.photo=photo||'';cur.mod=new Date().toISOString();
+  if(!cur.code&&!cur.old)return alert('اكتب الكود الجديد أو القديم');
+  if(cur.code&&D.some(d=>d.code===cur.code&&d.uid!==cur.uid))return alert('الكود الجديد ده مستخدم قبل كده');
+  if(!D.some(d=>d.uid===cur.uid))D.unshift(cur);
+  const m=/^D-(\d+)$/.exec(cur.code);if(m&&+m[1]>=(meta.next||1))meta.next=+m[1]+1;
+  await persist();if(again)edit(null);else list();
+}
+async function delD(){if(!confirm('حذف الفستان؟'))return;D=D.filter(d=>d.uid!==cur.uid);await persist();list()}
+function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dresses:D.map(d=>({uid:d.uid,code:d.code,old:d.old,desc:d.desc,color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
+async function exportFile(){
+  if(!D.length)return alert('مفيش فساتين تتبعت');
+  const name='فساتين-'+today()+'.txt';
+  const file=new File([JSON.stringify(build())],name,{type:'text/plain'});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'فساتين ميس ميرنا'});meta.lastExport=new Date().toISOString();await persist();return list()}
+  }catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  meta.lastExport=new Date().toISOString();await persist();alert('الملف اتحفظ في الملفات / التنزيلات. ابعته على واتساب للكمبيوتر.');list();
+}
+function more(){
+  $('#v').innerHTML=`<div class="wrap"><h3>نسخة احتياطية</h3><div class="mut">الفساتين محفوظة على التليفون ده بس. "إرسال للكمبيوتر" بيعمل ملف تقدر تحتفظ بيه كنسخة احتياطية كمان.</div>
+  <button class="btn g" onclick="exportFile()">حفظ / إرسال ملف</button>
+  <h3>استرجاع من ملف</h3><input type="file" accept=".json,.txt,text/plain,application/json" onchange="restore(this.files[0])"><div id="rs"></div>
+  <button class="btn w" onclick="list()" style="margin-top:20px">رجوع</button></div>`;
+}
+async function restore(f){
+  if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='dokkan-elfarah-mobile')throw 0;
+    let a=0;for(const x of d.dresses){const i=D.findIndex(y=>y.uid===x.uid);if(i>=0)D[i]=Object.assign(D[i],x);else{D.push(Object.assign({mod:''},x));a++}}
+    await persist();$('#rs').innerHTML=`<div class="msg">تم. ${d.dresses.length} فستان (${a} جديد).</div>`}catch(e){$('#rs').innerHTML='<div class="warn">الملف مش صحيح</div>'}
+}
+boot();
+</script>
+</body>
+</html>
