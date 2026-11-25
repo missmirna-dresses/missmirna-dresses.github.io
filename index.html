@@ -30,6 +30,13 @@ label{display:block;font-size:16px;color:#6b4a57;margin:10px 0 3px}
 .warn{background:#fff3cd;border-right:6px solid #d4a24c;padding:10px 12px;border-radius:8px;margin:10px 0}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .prev img{max-width:100%;max-height:320px;border-radius:10px;margin-top:8px}
+
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.cc{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px #0002;break-inside:avoid}
+.cc .im{height:200px;background:#f0e4e8;display:flex;align-items:center;justify-content:center;color:#a88;font-size:14px}
+.cc img{width:100%;height:100%;object-fit:cover}
+.cc .tx{padding:8px 10px;font-size:15px;line-height:1.5}.cc .tx b{font-size:19px}
+@media print{header,.bar,.noprint{display:none!important}body{background:#fff;padding:0;font-size:12px}.cg{grid-template-columns:repeat(3,1fr);gap:4mm}.cc{box-shadow:none;border:1px solid #444;height:84mm}.cc .im{height:54mm}.cc .tx{font-size:12px}.cc .tx b{font-size:17px}@page{size:A4;margin:8mm}}
 </style>
 </head>
 <body>
@@ -76,7 +83,7 @@ function list(){
   ${un?`<div class="warn">${un} فستان لسه ما اتبعتوش للكمبيوتر</div>`:(D.length?'<div class="msg">كل الفساتين اتبعتت ✔</div>':'')}
   <div id="L">${L.map(row).join('')||'<div class="mut" style="margin:20px 0">لسه مفيش فساتين. اضغط "+ فستان جديد".</div>'}</div></div>
   <div class="bar"><button class="btn y" onclick="edit(null)">+ فستان جديد</button><button class="btn g" onclick="exportFile()">إرسال للكمبيوتر</button></div>
-  <div class="wrap"><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
+  <div class="wrap"><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
 function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
 const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(lbl(d))}</b>${d.code?'':' <span class="mut">(الكود هيتحدد في الكمبيوتر)</span>'}${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)}</div></div></div>`;
@@ -119,6 +126,50 @@ async function exportFile(){
   }catch(e){if(e&&e.name==='AbortError')return}
   const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
   meta.lastExport=new Date().toISOString();await persist();alert('الملف اتحفظ في الملفات / التنزيلات. ابعته على واتساب للكمبيوتر.');list();
+}
+let cq='',ct='';
+const cardH=d=>`<div class="cc"><div class="im">${d.photo?`<img src="${d.photo}">`:'بدون صورة'}</div><div class="tx"><b>${esc(lbl(d))}</b>${d.old?`<div>قديم: ${esc(d.old)}</div>`:''}<div>${esc(d.type||'-')} · ${esc(d.color||'-')}</div>${d.desc?`<div class="mut">${esc(d.desc)}</div>`:''}</div></div>`;
+const cList=()=>D.filter(d=>(!ct||d.type===ct)&&(!cq||(lbl(d)+' '+d.old+' '+d.desc+' '+d.color+' '+(d.type||'')).includes(cq)));
+function cat(){
+  const L=cList();
+  $('#v').innerHTML=`<div class="wrap"><div class="noprint"><input id="cq" placeholder="بحث" value="${esc(cq)}" oninput="cq=this.value;cat2()">
+  <label>النوع</label><select id="ct" onchange="ct=this.value;cat()"><option value="">كل الأنواع</option>${types().map(t=>`<option ${t===ct?'selected':''}>${esc(t)}</option>`).join('')}</select>
+  <div class="mut" style="margin-top:6px">${L.length} فستان</div>
+  <button class="btn g" onclick="catImg()">📤 مشاركة كصور</button>
+  <button class="btn" onclick="window.print()">🖨 حفظ PDF / طباعة</button>
+  <div class="mut">للـ PDF على الايفون: بعد ما تضغط الزرار، اضغط مشاركة ثم "حفظ في الملفات" (أو افتح معاينة الطباعة بإصبعين وشارك).</div>
+  <button class="btn w" onclick="list()">رجوع</button></div>
+  <h3 style="text-align:center;margin:10px 0 0" class="pt">ميس ميرنا - كتالوج الفساتين</h3>
+  <div class="cg">${L.map(cardH).join('')}</div></div>`;
+  window.scrollTo(0,0);
+}
+function cat2(){const v=cq;cat();const i=$('#cq');i.focus();i.setSelectionRange(v.length,v.length)}
+const loadImg=s=>new Promise(r=>{if(!s)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=s});
+async function catImg(){
+  const L=cList();if(!L.length)return alert('مفيش فساتين');
+  const files=[],W=1200,H=1700,pad=30,cw=(W-pad*3)/2,ch=(H-150-pad*4)/3;
+  for(let p=0;p*6<L.length;p++){
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+    x.fillStyle='#faf5f3';x.fillRect(0,0,W,H);x.direction='rtl';x.textAlign='center';x.fillStyle='#5a2a3c';x.font='bold 48px Tahoma,Arial,sans-serif';x.fillText('ميس ميرنا - كتالوج الفساتين',W/2,80);
+    const part=L.slice(p*6,p*6+6);
+    for(let i=0;i<part.length;i++){
+      const d=part[i],col=i%2,row=Math.floor(i/2),cx=W-pad-cw-col*(cw+pad),cy=130+pad+row*(ch+pad);
+      x.fillStyle='#fff';x.fillRect(cx,cy,cw,ch);x.strokeStyle='#bbb';x.strokeRect(cx,cy,cw,ch);
+      const ih=ch-170;x.fillStyle='#f0e4e8';x.fillRect(cx,cy,cw,ih);
+      const im=await loadImg(d.photo);
+      if(im){const k=Math.max(cw/im.width,ih/im.height),sw=cw/k,sh=ih/k;x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,cx,cy,cw,ih)}
+      else{x.fillStyle='#a88';x.font='26px Tahoma,Arial,sans-serif';x.textAlign='center';x.fillText('بدون صورة',cx+cw/2,cy+ih/2)}
+      x.textAlign='right';x.fillStyle='#000';x.font='bold 40px Tahoma,Arial,sans-serif';x.fillText(lbl(d),cx+cw-16,cy+ih+46);
+      x.font='28px Tahoma,Arial,sans-serif';x.fillStyle='#333';
+      x.fillText((d.old?'قديم: '+d.old+' · ':'')+(d.type||'-'),cx+cw-16,cy+ih+88);
+      x.fillText('اللون: '+(d.color||'-'),cx+cw-16,cy+ih+126);
+    }
+    const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    files.push(new File([blob],'كتالوج-'+(p+1)+'.png',{type:'image/png'}));
+  }
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:'كتالوج فساتين ميس ميرنا'});return}}catch(e){if(e&&e.name==='AbortError')return}
+  for(const f of files){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove()}
+  alert('الصور اتحفظت في التنزيلات / الملفات.');
 }
 function more(){
   $('#v').innerHTML=`<div class="wrap"><h3>نسخة احتياطية</h3><div class="mut">الفساتين محفوظة على التليفون ده بس. "إرسال للكمبيوتر" بيعمل ملف تقدر تحتفظ بيه كنسخة احتياطية كمان.</div>
