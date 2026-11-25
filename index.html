@@ -86,7 +86,7 @@ function list(){
   <div class="wrap"><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
 function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
-const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(lbl(d))}</b>${d.code?'':' <span class="mut">(الكود هيتحدد في الكمبيوتر)</span>'}${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)}${(d.qty||1)>1?' · عدد القطع '+esc(d.qty):''}${d.use==='sale'?' · للبيع':' · للإيجار'}</div></div></div>`;
+const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(lbl(d))}</b>${d.code?'':' <span class="mut">(الكود هيتحدد في الكمبيوتر)</span>'}${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)}${(d.qty||1)>1?' · عدد القطع '+esc(d.qty):''}</div></div></div>`;
 function edit(id){
   cur=id?D.find(d=>d.uid===id):{uid:uid(),code:'',loc:(meta.loc=(meta.loc||0)+1),old:'',desc:'',type:'',color:'',rent:'',sale:'',notes:'',photo:''};
   photo=cur.photo||'';
@@ -95,7 +95,6 @@ function edit(id){
   <label>الوصف / الموديل</label><input id="d" value="${esc(cur.desc)}">
  <label>نوع الفستان</label><select id="t" onchange="typePicked(this)"><option value="">-- اختر --</option>${types(cur.type).map(t=>`<option ${t===cur.type?'selected':''}>${esc(t)}</option>`).join('')}<option value="__new">+ إضافة نوع جديد...</option></select>
   <label>اللون</label><input id="l" value="${esc(cur.color)}">
-  <label>الفستان للـ</label><select id="u2"><option value="rent" ${cur.use!=='sale'?'selected':''}>إيجار</option><option value="sale" ${cur.use==='sale'?'selected':''}>بيع</option></select>
   <label>عدد القطع</label><input id="q2" type="number" inputmode="numeric" min="1" value="${esc(cur.qty||1)}">
   <label>ملاحظات</label><input id="n" value="${esc(cur.notes)}">
   <label>الصورة</label>
@@ -112,13 +111,13 @@ function edit(id){
 function pick(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=800,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);photo=c.toDataURL('image/jpeg',0.72);$('#pv').innerHTML=`<img src="${photo}">`};im.src=r.result};r.readAsDataURL(f)}
 async function saveD(again){
   const g=i=>$('#'+i).value.trim();
-  cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.notes=g('n');cur.qty=Math.max(1,parseInt(g('q2'))||1);cur.use=$('#u2').value;cur.photo=photo||'';cur.mod=new Date().toISOString();
+  cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.notes=g('n');cur.qty=Math.max(1,parseInt(g('q2'))||1);cur.photo=photo||'';cur.mod=new Date().toISOString();
   if(!cur.old&&!cur.desc&&!cur.photo)return alert('اكتب وصف الفستان أو الكود القديم أو صوّره');
   if(!D.some(d=>d.uid===cur.uid))D.unshift(cur);
   await persist();if(again)edit(null);else list();
 }
 async function delD(){if(!confirm('حذف الفستان؟'))return;D=D.filter(d=>d.uid!==cur.uid);await persist();list()}
-function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dev:{id:meta.dev,name:meta.name||''},types:types(),dresses:D.map(d=>({uid:d.uid,mod:d.mod||'',loc:d.loc||'',code:d.code||'',qty:d.qty||1,use:d.use||'rent',old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
+function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dev:{id:meta.dev,name:meta.name||''},types:types(),dresses:D.map(d=>({uid:d.uid,mod:d.mod||'',loc:d.loc||'',code:d.code||'',qty:d.qty||1,old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
 async function exportFile(){
   if(!D.length)return alert('مفيش فساتين تتبعت');
   const name='فساتين-'+(meta.name?meta.name+'-':'')+today()+'.txt';
