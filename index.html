@@ -51,15 +51,23 @@ async function boot(){
   db=await open();D=(await get('dresses'))||[];meta=(await get('meta'))||meta;
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
   if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(!meta.dev){meta.dev='ph-'+uid();await persist()}
+  if(!meta.asked&&!meta.name)return askName();
   list();
 }
 const types=x=>{const L=BASE.concat((meta.types||[]).filter(t=>!BASE.includes(t)));return x&&!L.includes(x)?L.concat([x]):L};
 function typePicked(el){if(el.value!=='__new')return;const t=(prompt('اكتب نوع الفستان الجديد')||'').trim();if(t){meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t);const o=document.createElement('option');o.textContent=t;el.insertBefore(o,el.lastElementChild);el.value=t}else el.value=''}
 const code=n=>'D-'+String(n).padStart(3,'0');
-function nextFree(){let n=meta.next||1;while(D.some(d=>d.code===code(n)))n++;return n}
+const lbl=d=>d.code?d.code:(d.loc?'م-'+d.loc:'جديد');
+function askName(){
+  $('#v').innerHTML=`<div class="wrap"><h3>اسمك إيه؟</h3><div class="mut">بنسجله مرة واحدة بس، عشان صاحب المحل يعرف مين سجّل الفساتين دي.</div>
+  <label>الاسم</label><input id="nm" placeholder="مثال: منى"><button class="btn g" onclick="saveName()">حفظ</button><button class="btn w" onclick="skipName()">تخطي</button></div>`;
+}
+async function saveName(){meta.name=($('#nm').value||'').trim();meta.asked=true;await persist();list()}
+async function skipName(){meta.asked=true;await persist();list()}
 function list(){
   cur=null;photo=null;$('#cnt').textContent=D.length+' فستان';
-  const L=D.filter(d=>!q||(d.code+' '+d.old+' '+d.desc+' '+d.color+' '+(d.type||'')).includes(q));
+  const L=D.filter(d=>!q||(lbl(d)+' '+d.old+' '+d.desc+' '+d.color+' '+(d.type||'')).includes(q));
   const un=D.filter(d=>!meta.lastExport||(d.mod||'')>meta.lastExport).length;
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),sa=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   $('#v').innerHTML=`<div class="wrap">
@@ -71,16 +79,15 @@ function list(){
   <div class="wrap"><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
 function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
-const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(d.code)}</b>${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)} · إيجار ${esc(d.rent)} · بيع ${esc(d.sale)}</div></div></div>`;
+const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(lbl(d))}</b>${d.code?'':' <span class="mut">(الكود هيتحدد في الكمبيوتر)</span>'}${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)}</div></div></div>`;
 function edit(id){
-  cur=id?D.find(d=>d.uid===id):{uid:uid(),code:code(nextFree()),old:'',desc:'',type:'',color:'',rent:'',sale:'',notes:'',photo:''};
+  cur=id?D.find(d=>d.uid===id):{uid:uid(),code:'',loc:(meta.loc=(meta.loc||0)+1),old:'',desc:'',type:'',color:'',rent:'',sale:'',notes:'',photo:''};
   photo=cur.photo||'';
   $('#v').innerHTML=`<div class="wrap">
-  <div class="two"><div><label>الكود الجديد</label><input id="c" value="${esc(cur.code)}"></div><div><label>الكود القديم</label><input id="o" value="${esc(cur.old)}"></div></div>
+  <div class="two"><div><label>الكود الجديد</label><input id="c" value="${esc(cur.code||'هيتحدد في الكمبيوتر')}" disabled></div><div><label>الكود القديم</label><input id="o" value="${esc(cur.old)}"></div></div>
   <label>الوصف / الموديل</label><input id="d" value="${esc(cur.desc)}">
  <label>نوع الفستان</label><select id="t" onchange="typePicked(this)"><option value="">-- اختر --</option>${types(cur.type).map(t=>`<option ${t===cur.type?'selected':''}>${esc(t)}</option>`).join('')}<option value="__new">+ إضافة نوع جديد...</option></select>
   <label>اللون</label><input id="l" value="${esc(cur.color)}">
-  <div class="two"><div><label>سعر الإيجار</label><input id="r" type="number" inputmode="numeric" value="${esc(cur.rent)}"></div><div><label>سعر البيع</label><input id="s" type="number" inputmode="numeric" value="${esc(cur.sale)}"></div></div>
   <label>ملاحظات</label><input id="n" value="${esc(cur.notes)}">
   <label>الصورة</label>
   <div class="two"><button class="btn" onclick="$('#cam').click()">📷 كاميرا</button><button class="btn w" onclick="$('#gal').click()">🖼 من الصور</button></div>
@@ -96,18 +103,16 @@ function edit(id){
 function pick(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=800,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);photo=c.toDataURL('image/jpeg',0.72);$('#pv').innerHTML=`<img src="${photo}">`};im.src=r.result};r.readAsDataURL(f)}
 async function saveD(again){
   const g=i=>$('#'+i).value.trim();
-  cur.code=g('c');cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.rent=g('r');cur.sale=g('s');cur.notes=g('n');cur.photo=photo||'';cur.mod=new Date().toISOString();
-  if(!cur.code&&!cur.old)return alert('اكتب الكود الجديد أو القديم');
-  if(cur.code&&D.some(d=>d.code===cur.code&&d.uid!==cur.uid))return alert('الكود الجديد ده مستخدم قبل كده');
+  cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.notes=g('n');cur.photo=photo||'';cur.mod=new Date().toISOString();
+  if(!cur.old&&!cur.desc&&!cur.photo)return alert('اكتب وصف الفستان أو الكود القديم أو صوّره');
   if(!D.some(d=>d.uid===cur.uid))D.unshift(cur);
-  const m=/^D-(\d+)$/.exec(cur.code);if(m&&+m[1]>=(meta.next||1))meta.next=+m[1]+1;
   await persist();if(again)edit(null);else list();
 }
 async function delD(){if(!confirm('حذف الفستان؟'))return;D=D.filter(d=>d.uid!==cur.uid);await persist();list()}
-function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),types:types(),dresses:D.map(d=>({uid:d.uid,code:d.code,old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
+function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dev:{id:meta.dev,name:meta.name||''},types:types(),dresses:D.map(d=>({uid:d.uid,mod:d.mod||'',loc:d.loc||'',code:d.code||'',old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
 async function exportFile(){
   if(!D.length)return alert('مفيش فساتين تتبعت');
-  const name='فساتين-'+today()+'.txt';
+  const name='فساتين-'+(meta.name?meta.name+'-':'')+today()+'.txt';
   const file=new File([JSON.stringify(build())],name,{type:'text/plain'});
   try{
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'فساتين ميس ميرنا'});meta.lastExport=new Date().toISOString();await persist();return list()}
@@ -123,7 +128,7 @@ function more(){
 }
 async function restore(f){
   if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='dokkan-elfarah-mobile')throw 0;
-    (d.types||[]).forEach(t=>{meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t)});let a=0;for(const x of d.dresses||[]){const i=D.findIndex(y=>y.uid===x.uid);if(i>=0)D[i]=Object.assign(D[i],x);else{D.push(Object.assign({mod:''},x));a++}}
+    (d.types||[]).forEach(t=>{meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t)});let a=0;for(const x of d.dresses||[]){const i=D.findIndex(y=>y.uid===x.uid);if(i>=0){const un=!meta.lastExport||(D[i].mod||'')>meta.lastExport;if(un){if(x.code)D[i].code=x.code}else Object.assign(D[i],x)}else{D.push(Object.assign({mod:''},x));a++}}
     await persist();$('#rs').innerHTML=`<div class="msg">تم. ${d.dresses.length} فستان (${a} جديد).</div>`}catch(e){$('#rs').innerHTML='<div class="warn">الملف مش صحيح</div>'}
 }
 boot();
