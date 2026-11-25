@@ -41,6 +41,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const BASE=['باربي','مرميت','تواوك','جوميه'];
 let db,D=[],meta={lastExport:null,next:1},cur=null,photo=null,q='';
 const open=()=>new Promise((res,rej)=>{const r=indexedDB.open('miss-mirna-mobile',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const get=k=>new Promise(r=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result)});
@@ -52,29 +53,32 @@ async function boot(){
   if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
   list();
 }
+const types=x=>{const L=BASE.concat((meta.types||[]).filter(t=>!BASE.includes(t)));return x&&!L.includes(x)?L.concat([x]):L};
+function typePicked(el){if(el.value!=='__new')return;const t=(prompt('اكتب نوع الفستان الجديد')||'').trim();if(t){meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t);const o=document.createElement('option');o.textContent=t;el.insertBefore(o,el.lastElementChild);el.value=t}else el.value=''}
 const code=n=>'D-'+String(n).padStart(3,'0');
 function nextFree(){let n=meta.next||1;while(D.some(d=>d.code===code(n)))n++;return n}
 function list(){
   cur=null;photo=null;$('#cnt').textContent=D.length+' فستان';
-  const L=D.filter(d=>!q||(d.code+' '+d.old+' '+d.desc+' '+d.color).includes(q));
+  const L=D.filter(d=>!q||(d.code+' '+d.old+' '+d.desc+' '+d.color+' '+(d.type||'')).includes(q));
   const un=D.filter(d=>!meta.lastExport||(d.mod||'')>meta.lastExport).length;
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),sa=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   $('#v').innerHTML=`<div class="wrap">
   ${ios&&!sa?'<div class="warn">مهم: قبل ما تسجل أي فستان اضغط زرار المشاركة (المربع والسهم) ثم "إضافة إلى الشاشة الرئيسية"، وافتح التطبيق من الأيقونة. اللي بيتسجل في سفاري مش بيظهر في الأيقونة.</div>':''}
-  <input id="q" placeholder="بحث بالكود أو الوصف أو اللون" value="${esc(q)}" oninput="q=this.value;list2()">
+  <input id="q" placeholder="بحث بالكود أو الوصف أو النوع أو اللون" value="${esc(q)}" oninput="q=this.value;list2()">
   ${un?`<div class="warn">${un} فستان لسه ما اتبعتوش للكمبيوتر</div>`:(D.length?'<div class="msg">كل الفساتين اتبعتت ✔</div>':'')}
   <div id="L">${L.map(row).join('')||'<div class="mut" style="margin:20px 0">لسه مفيش فساتين. اضغط "+ فستان جديد".</div>'}</div></div>
   <div class="bar"><button class="btn y" onclick="edit(null)">+ فستان جديد</button><button class="btn g" onclick="exportFile()">إرسال للكمبيوتر</button></div>
   <div class="wrap"><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
 function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
-const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(d.code)}</b>${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div><div class="mut">${esc(d.color)} · إيجار ${esc(d.rent)} · بيع ${esc(d.sale)}</div></div></div>`;
+const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(d.code)}</b>${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)} · إيجار ${esc(d.rent)} · بيع ${esc(d.sale)}</div></div></div>`;
 function edit(id){
-  cur=id?D.find(d=>d.uid===id):{uid:uid(),code:code(nextFree()),old:'',desc:'',color:'',rent:'',sale:'',notes:'',photo:''};
+  cur=id?D.find(d=>d.uid===id):{uid:uid(),code:code(nextFree()),old:'',desc:'',type:'',color:'',rent:'',sale:'',notes:'',photo:''};
   photo=cur.photo||'';
   $('#v').innerHTML=`<div class="wrap">
   <div class="two"><div><label>الكود الجديد</label><input id="c" value="${esc(cur.code)}"></div><div><label>الكود القديم</label><input id="o" value="${esc(cur.old)}"></div></div>
   <label>الوصف / الموديل</label><input id="d" value="${esc(cur.desc)}">
+ <label>نوع الفستان</label><select id="t" onchange="typePicked(this)"><option value="">-- اختر --</option>${types(cur.type).map(t=>`<option ${t===cur.type?'selected':''}>${esc(t)}</option>`).join('')}<option value="__new">+ إضافة نوع جديد...</option></select>
   <label>اللون</label><input id="l" value="${esc(cur.color)}">
   <div class="two"><div><label>سعر الإيجار</label><input id="r" type="number" inputmode="numeric" value="${esc(cur.rent)}"></div><div><label>سعر البيع</label><input id="s" type="number" inputmode="numeric" value="${esc(cur.sale)}"></div></div>
   <label>ملاحظات</label><input id="n" value="${esc(cur.notes)}">
@@ -92,7 +96,7 @@ function edit(id){
 function pick(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=800,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);photo=c.toDataURL('image/jpeg',0.72);$('#pv').innerHTML=`<img src="${photo}">`};im.src=r.result};r.readAsDataURL(f)}
 async function saveD(again){
   const g=i=>$('#'+i).value.trim();
-  cur.code=g('c');cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.rent=g('r');cur.sale=g('s');cur.notes=g('n');cur.photo=photo||'';cur.mod=new Date().toISOString();
+  cur.code=g('c');cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.rent=g('r');cur.sale=g('s');cur.notes=g('n');cur.photo=photo||'';cur.mod=new Date().toISOString();
   if(!cur.code&&!cur.old)return alert('اكتب الكود الجديد أو القديم');
   if(cur.code&&D.some(d=>d.code===cur.code&&d.uid!==cur.uid))return alert('الكود الجديد ده مستخدم قبل كده');
   if(!D.some(d=>d.uid===cur.uid))D.unshift(cur);
@@ -100,7 +104,7 @@ async function saveD(again){
   await persist();if(again)edit(null);else list();
 }
 async function delD(){if(!confirm('حذف الفستان؟'))return;D=D.filter(d=>d.uid!==cur.uid);await persist();list()}
-function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dresses:D.map(d=>({uid:d.uid,code:d.code,old:d.old,desc:d.desc,color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
+function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),types:types(),dresses:D.map(d=>({uid:d.uid,code:d.code,old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,photo:d.photo}))}}
 async function exportFile(){
   if(!D.length)return alert('مفيش فساتين تتبعت');
   const name='فساتين-'+today()+'.txt';
@@ -119,7 +123,7 @@ function more(){
 }
 async function restore(f){
   if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='dokkan-elfarah-mobile')throw 0;
-    let a=0;for(const x of d.dresses){const i=D.findIndex(y=>y.uid===x.uid);if(i>=0)D[i]=Object.assign(D[i],x);else{D.push(Object.assign({mod:''},x));a++}}
+    (d.types||[]).forEach(t=>{meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t)});let a=0;for(const x of d.dresses||[]){const i=D.findIndex(y=>y.uid===x.uid);if(i>=0)D[i]=Object.assign(D[i],x);else{D.push(Object.assign({mod:''},x));a++}}
     await persist();$('#rs').innerHTML=`<div class="msg">تم. ${d.dresses.length} فستان (${a} جديد).</div>`}catch(e){$('#rs').innerHTML='<div class="warn">الملف مش صحيح</div>'}
 }
 boot();
