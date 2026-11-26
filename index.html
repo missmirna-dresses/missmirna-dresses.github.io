@@ -56,10 +56,12 @@ const put=(k,v)=>new Promise((r,j)=>{const t=db.transaction('kv','readwrite');t.
 const persist=async()=>{await put('dresses',D);await put('meta',meta)};
 async function boot(){
   db=await open();D=(await get('dresses'))||[];meta=(await get('meta'))||meta;
+  try{const h=location.hash;if(h.startsWith('#link=')){const c=h.slice(6);history.replaceState(null,'',location.pathname);if(c.startsWith('MM1:')){const o=JSON.parse(decodeURIComponent(escape(atob(c.slice(4)))));if(o.u&&o.t&&/^https:\/\/script\.google\.com\//.test(o.u)){meta.sync={u:o.u,t:o.t};await put('meta',meta);window._linked=1}}}}catch(e){}
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
   if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(!meta.dev){meta.dev='ph-'+uid();await persist()}
   if(!meta.name)return askName();
+  if(window._linked){window._linked=0;alert('تم ربط المزامنة');bk();return}
   list();
 }
 const types=x=>{const L=BASE.concat((meta.types||[]).filter(t=>!BASE.includes(t)));return x&&!L.includes(x)?L.concat([x]):L};
@@ -73,7 +75,7 @@ function askName(){
 async function saveName(){const n=($('#nm').value||'').trim();if(!n)return alert('اكتب اسمك الأول');meta.name=n;meta.asked=true;await persist();list()}
 async function skipName(){meta.asked=true;await persist();list()}
 function list(){
-  cur=null;photo=null;$('#cnt').textContent=D.length+' فستان';
+  bkAuto=0;cur=null;photo=null;$('#cnt').textContent=D.length+' فستان';
   const L=D.filter(d=>!q||(lbl(d)+' '+d.old+' '+d.desc+' '+d.color+' '+(d.type||'')).includes(q));
   const un=D.filter(d=>!meta.lastExport||(d.mod||'')>meta.lastExport).length;
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),sa=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
@@ -83,8 +85,52 @@ function list(){
   ${un?`<div class="warn">${un} فستان لسه ما اتبعتوش للكمبيوتر</div>`:(D.length?'<div class="msg">كل الفساتين اتبعتت ✔</div>':'')}
   <div id="L">${L.map(row).join('')||'<div class="mut" style="margin:20px 0">لسه مفيش فساتين. اضغط "+ فستان جديد".</div>'}</div></div>
   <div class="bar"><button class="btn y" onclick="edit(null)">+ فستان جديد</button><button class="btn g" onclick="exportFile()">إرسال للكمبيوتر</button></div>
-  <div class="wrap"><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
+  <div class="wrap"><button class="btn y" onclick="bk()">🔍 الحجوزات والعملاء</button><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
+
+/* ===== الحجوزات والعملاء (من الكمبيوتر، قراءة فقط) ===== */
+let bkF='out',bkQ='',bkAuto=0,bkMsg='';
+const fd=x=>x?String(x).split('-').reverse().slice(0,2).join('/'):'';
+async function bkSync(manual){
+  const y=meta.sync;if(!y)return;bkMsg='...جاري التحديث';if(manual)bk();
+  try{const r=await fetch(y.u+(y.u.includes('?')?'&':'?')+'t='+encodeURIComponent(y.t));const j=await r.json();
+    if(!j.ok)throw new Error(j.error==='token'?'كود الربط قديم، اربط من جديد':j.error==='empty'?'لسه الكمبيوتر ماسجلش بيانات':'رد غير متوقع');
+    meta.pc=j.data;meta.syncAt=Date.now();await persist();bkMsg=''}
+  catch(e){bkMsg='⚠ ما قدرناش نحدث ('+((e&&e.message&&!/fetch|Network|Load/i.test(e.message))?e.message:'مفيش إنترنت')+'). معروض آخر نسخة محفوظة.'}
+  if($('#bq')||document.querySelector('#v h3')||true)bk()}
+async function bkLink(code){code=(code||'').trim();if(code.includes('#link='))code=code.split('#link=')[1];
+  if(!code.startsWith('MM1:'))return alert('الكود مش صحيح');
+  try{const o=JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));if(!o.u||!o.t||!/^https:\/\/script\.google\.com\//.test(o.u))throw 1;meta.sync={u:o.u,t:o.t};await persist();bkAuto=1;bkSync(true)}catch(e){alert('الكود مش صحيح')}}
+async function bkUnlink(){if(!confirm('فصل الربط؟ هتفضل آخر نسخة محفوظة.'))return;delete meta.sync;await persist();bk()}
+function bkLinkBox(){return meta.sync?`<button class="btn g" onclick="bkSync(true)">🔄 تحديث الآن</button>`:`<div class="mut" style="margin-top:8px">لو المحل بعتلك كود ربط، الصقه هنا عشان التحديث يبقى تلقائي:</div><input id="lk" placeholder="MM1:..." style="direction:ltr"><button class="btn y" onclick="bkLink($('#lk').value)">ربط</button>`}
+function bk(){
+  if(meta.sync&&!bkAuto){bkAuto=1;bkSync(false)}
+  const pc=meta.pc;
+  if(!pc){$('#v').innerHTML=`<div class="wrap"><h3>الحجوزات والعملاء</h3><div class="mut">لسه مفيش بيانات من الكمبيوتر. اربط بكود المزامنة، أو اطلب ملف الحجوزات على واتساب واختاره.</div><div class="mut">${esc(bkMsg)}</div>${bkLinkBox()}
+  <input type="file" id="pcf" accept=".txt,.json,text/plain,application/json" hidden onchange="bkLoad(this)"><button class="btn g" onclick="$('#pcf').click()">📥 تحديث من الكمبيوتر (ملف)</button><button class="btn w" onclick="list()">رجوع</button></div>`;return}
+  const ds={};pc.dresses.forEach(d=>ds[d.id]=d);
+  const inn=pc.dresses.filter(d=>d.st==='in'),out=pc.bookings.filter(b=>b.st==='out').sort((a,b)=>a.ret<b.ret?-1:1),bkd=pc.bookings.filter(b=>b.st==='booked').sort((a,b)=>a.out<b.out?-1:1);
+  const m=(t,x)=>!bkQ||t.includes(bkQ);
+  const dtxt=d=>d?[d.id,d.old,d.desc,d.type,d.color].join(' '):'';
+  const btxt=b=>[b.name,b.phone,b.dressId,b.id,dtxt(ds[b.dressId])].join(' ');
+  const fb=(b,tag,col)=>{const d=ds[b.dressId]||{};return `<div class="dc">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(b.dressId)}</b> <span style="background:${col};color:#fff;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:bold">${tag}${b.late?' - متأخر '+b.late+' يوم':''}</span><div>${esc([d.desc,d.type,d.color].filter(Boolean).join(' - '))}</div><div><b>${esc(b.name)}</b></div>${b.phone?`<div><a href="tel:${esc(b.phone)}">📞 ${esc(b.phone)}</a></div>`:''}<div class="mut">${b.st==='out'?'خروج':'هتخرج'}: ${fd(b.out)} · ${b.st==='out'?'رجوع':'هترجع'}: ${fd(b.ret)}</div><div class="mut">حجز ${esc(b.id)}${b.rem?' · باقي: '+b.rem:''}</div></div></div>`};
+  const fi=d=>{const nx=bkd.find(b=>b.dressId===d.id);return `<div class="dc">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(d.id)}</b> <span style="background:#2d7d4f;color:#fff;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:bold">جوه المحل</span><div>${esc([d.desc,d.type,d.color].filter(Boolean).join(' - '))}</div>${nx?`<div class="mut">محجوز جاي: ${esc(nx.name)} من ${fd(nx.out)}</div>`:''}</div></div>`};
+  let rows;
+  if(bkQ){rows=out.filter(b=>m(btxt(b))).map(b=>fb(b,'بره','#c0392b')).concat(bkd.filter(b=>m(btxt(b))).map(b=>fb(b,'محجوز','#d4a24c'))).concat(inn.filter(d=>m(dtxt(d))).map(fi))}
+  else rows=bkF==='in'?inn.map(fi):bkF==='out'?out.map(b=>fb(b,'بره','#c0392b')):bkd.map(b=>fb(b,'محجوز','#d4a24c'));
+  const at=pc.at?new Date(pc.at):null,age=at?Math.floor((Date.now()-at)/864e5):0;
+  const bt=(k,l,n,c,tc)=>`<button class="btn" style="background:${c};color:${tc||'#fff'};padding:12px 2px;flex:1;${!bkQ&&bkF===k?'outline:3px solid #333':''}" onclick="bkF='${k}';bkQ='';bk()">${l}<br>${n}</button>`;
+  $('#v').innerHTML=`<div class="wrap"><input id="bq" placeholder="بحث: اسم أو تليفون أو موديل" value="${esc(bkQ)}" oninput="bkQ=this.value;bk2()">
+  <div style="display:flex;gap:6px;margin:8px 0">${bt('in','جوه المحل',inn.length,'#2d7d4f')}${bt('out','بره عند العميلة',out.length,'#c0392b')}${bt('booked','محجوز جاي',bkd.length,'#d4a24c','#000')}</div>
+  <div class="mut">${esc(bkMsg)}</div><div class="mut">آخر نسخة من الكمبيوتر: ${at?at.toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):''}${age>=1?' <b style="color:#c0392b">(من '+age+' يوم، اطلب ملف جديد)</b>':''}</div>
+  <div id="L">${rows.join('')||'<div class="mut" style="margin:20px 0">مفيش نتائج</div>'}</div>
+  <div class="mut" style="background:#fff3cd;padding:8px;border-radius:8px">البيانات للقراءة فقط، من آخر ملف اتبعت من الكمبيوتر.</div>
+  <input type="file" id="pcf" accept=".txt,.json,text/plain,application/json" hidden onchange="bkLoad(this)">${bkLinkBox()}<button class="btn w" onclick="$('#pcf').click()">📥 تحديث من ملف واتساب</button>${meta.sync?'<button class="btn w" onclick="bkUnlink()">فصل الربط</button>':''}<button class="btn w" onclick="list()">رجوع</button></div>`;
+}
+function bk2(){const v=bkQ;bk();const i=$('#bq');i.focus();i.setSelectionRange(v.length,v.length)}
+async function bkLoad(inp){const f=inp.files[0];if(!f)return;let d;try{d=JSON.parse(await f.text())}catch(e){return alert('الملف مش صالح')}
+  if(!d||d.app!=='miss-mirna-bookings'||!Array.isArray(d.bookings)||!Array.isArray(d.dresses))return alert('ده مش ملف الحجوزات من الكمبيوتر');
+  meta.pc=d;await persist();bk()}
 function list2(){const v=q;list();const i=$('#q');i.focus();i.setSelectionRange(v.length,v.length)}
 const row=d=>`<div class="dc" onclick="edit('${d.uid}')">${d.photo?`<img src="${d.photo}">`:'<div class="ph">بدون صورة</div>'}<div><b>${esc(lbl(d))}</b>${d.code?'':' <span class="mut">(الكود هيتحدد في الكمبيوتر)</span>'}${d.old?` <span class="mut">(قديم: ${esc(d.old)})</span>`:''}<div>${esc(d.desc)}</div>${d.by?`<div class="mut">سجّله: ${esc(d.by)}</div>`:''}${d.type?`<div><b style="color:#7a3d55">${esc(d.type)}</b></div>`:''}<div class="mut">${esc(d.color)}${(d.qty||1)>1?' · عدد القطع '+esc(d.qty):''}</div></div></div>`;
 function edit(id){
