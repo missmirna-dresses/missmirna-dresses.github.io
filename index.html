@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
-<meta name="theme-color" content="#5a2a3c">
+<meta name="theme-color" content="#1f4e8c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,18 +13,18 @@
 <title>ميس ميرنا</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;-webkit-text-size-adjust:100%;font-family:Tahoma,Arial,sans-serif;font-size:19px;background:#faf5f3;color:#2b2326;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
-header{background:#5a2a3c;color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
+body{margin:0;-webkit-text-size-adjust:100%;font-family:Tahoma,Arial,sans-serif;font-size:19px;background:#f3f6fb;color:#2b2326;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+header{background:#1f4e8c;color:#fff;border-radius:0 0 22px 22px;padding:calc(14px + env(safe-area-inset-top)) 16px 16px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
 header b{font-size:21px}
-.btn{font-family:inherit;font-size:20px;border:0;border-radius:12px;padding:14px 18px;background:#5a2a3c;color:#fff;width:100%;margin:6px 0}
-.btn.g{background:#2e7d4f}.btn.y{background:#d4a24c;color:#2b1a05}.btn.w{background:#e9dde1;color:#3a1524}.btn.r{background:#b3261e}
-input,select,textarea{font-family:inherit;font-size:20px;padding:12px;border:2px solid #d9c6cd;border-radius:10px;width:100%;background:#fff}
-label{display:block;font-size:16px;color:#6b4a57;margin:10px 0 3px}
+.btn{font-family:inherit;font-size:20px;border:0;border-radius:16px;padding:16px 18px;background:#1f4e8c;color:#fff;width:100%;margin:6px 0}
+.btn.g{background:#2e7d4f}.btn.y{background:#d4a24c;color:#2b1a05}.btn.w{background:#dfe8f5;color:#16365f}.btn.r{background:#b3261e}
+input,select,textarea{font-family:inherit;font-size:20px;padding:12px;border:2px solid #c3d1e6;border-radius:10px;width:100%;background:#fff}
+label{display:block;font-size:16px;color:#4a5f7a;margin:10px 0 3px}
 .wrap{padding:12px 14px}
-.dc{display:flex;gap:12px;background:#fff;border-radius:12px;box-shadow:0 1px 4px #0002;margin:10px 0;padding:8px;align-items:center}
-.dc img,.dc .ph{width:84px;height:110px;object-fit:cover;border-radius:8px;background:#f0e4e8;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#a88}
-.mut{color:#8a6f7a;font-size:15px}
-.bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #0003;display:flex;gap:10px}
+.dc{display:flex;gap:12px;background:#fff;border-radius:16px;box-shadow:0 1px 4px #0002;margin:10px 0;padding:8px;align-items:center}
+.dc img,.dc .ph{width:84px;height:110px;object-fit:cover;border-radius:8px;background:#e6edf7;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#a88}
+.mut{color:#6b7a90;font-size:15px}
+.kp{display:flex;gap:8px;margin:12px 0}.kp div{flex:1;background:#fff;border-radius:16px;padding:12px 4px;text-align:center;box-shadow:0 2px 8px #0002;font-size:13px;color:#555}.kp b{display:block;font-size:28px;color:#1f4e8c}.hb{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hb .btn{margin:0;font-size:19px;padding:20px 6px}.bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #0003;display:flex;gap:10px}
 .bar .btn{margin:0}
 .msg{background:#eaf6ee;border-right:6px solid #2e7d4f;padding:10px 12px;border-radius:8px;margin:10px 0}
 .warn{background:#fff3cd;border-right:6px solid #d4a24c;padding:10px 12px;border-radius:8px;margin:10px 0}
@@ -33,14 +33,14 @@ label{display:block;font-size:16px;color:#6b4a57;margin:10px 0 3px}
 
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .cc{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px #0002;break-inside:avoid}
-.cc .im{height:200px;background:#f0e4e8;display:flex;align-items:center;justify-content:center;color:#a88;font-size:14px}
+.cc .im{height:200px;background:#e6edf7;display:flex;align-items:center;justify-content:center;color:#a88;font-size:14px}
 .cc img{width:100%;height:100%;object-fit:cover}
 .cc .tx{padding:8px 10px;font-size:15px;line-height:1.5}.cc .tx b{font-size:19px}
 @media print{header,.bar,.noprint{display:none!important}body{background:#fff;padding:0;font-size:12px}.cg{grid-template-columns:repeat(3,1fr);gap:4mm}.cc{box-shadow:none;border:1px solid #444;height:84mm}.cc .im{height:54mm}.cc .tx{font-size:12px}.cc .tx b{font-size:17px}@page{size:A4;margin:8mm}}
 </style>
 </head>
 <body>
-<header><b>ميس ميرنا</b><span id="cnt"></span></header>
+<header><b><span style="display:inline-block;width:38px;height:38px;border-radius:50%;background:#fff;color:#1f4e8c;text-align:center;line-height:38px;margin-left:10px">👰</span>ميس ميرنا</b><span id="cnt"></span></header>
 <div id="v"></div>
 <script>
 'use strict';
@@ -70,7 +70,16 @@ function home(){const r=meta.role;
   if(r==='factory')return fac();
   if(r==='girl')return girl();
   if(meta.home==='store'||location.hash==='#store')return store();
-  list()}
+  hub()}
+function hub(){window._scr='hub';autoSync();
+  const X=stData(),t=today();let o=0,r=0,l=0,cards='';
+  if(X){const act=X.act;const tOut=act.filter(b=>b.st==='booked'&&b.out===t),tRet=act.filter(b=>b.st==='out'&&b.ret===t);o=tOut.length;r=tRet.length;l=X.late.length;
+    cards=tOut.map(b=>`<div class="dc" style="display:block"><b>${esc(b.dressId)}</b> · ${esc(b.name)}<div class="mut">خروج النهارده</div></div>`).join('')+tRet.map(b=>`<div class="dc" style="display:block"><b>${esc(b.dressId)}</b> · ${esc(b.name)}<div class="mut">راجع النهارده</div></div>`).join('')+X.late.map(b=>`<div class="dc" style="display:block"><b>${esc(b.dressId)}</b> · ${esc(b.name)} <span style="float:left;background:#ffe0e0;color:#b00;border-radius:8px;padding:2px 8px;font-size:13px">متأخر ${b.late} يوم</span><div class="mut">كان لازم يرجع ${fd(b.ret)}</div></div>`).join('')}
+  $('#cnt').textContent=D.length+' فستان';
+  $('#v').innerHTML=`<div class="wrap"><div class="kp"><div><b>${o}</b>خارجة النهاردة</div><div><b>${r}</b>راجعة</div><div><b>${l}</b>متأخر</div></div>
+  ${cards||'<div class="mut" style="margin:14px 0;text-align:center">'+(X?'مفيش حاجة النهاردة ✔':'لسه مفيش بيانات من المحل. دوس تحديث.')+'</div>'}
+  <div class="mut">${esc(bkMsg)}</div>
+  <div class="hb"><button class="btn" onclick="list()">👗 الفساتين</button><button class="btn" onclick="bk()">📅 الحجوزات</button><button class="btn" onclick="store()">🏬 المخزن</button><button class="btn" onclick="cat()">📖 الكتالوج</button><button class="btn y" style="grid-column:1/3" onclick="edit(null)">➕ فستان جديد</button><button class="btn g" style="grid-column:1/3;font-size:22px" onclick="bkAuto=0;hub()">🔄 تحديث</button><button class="btn w" style="grid-column:1/3;font-size:16px;padding:12px" onclick="more()">نسخة احتياطية / استرجاع</button></div></div>`}
 const isOwner=()=>!meta.role||meta.role==='owner';
 const types=x=>{const L=BASE.concat((meta.types||[]).filter(t=>!BASE.includes(t)));return x&&!L.includes(x)?L.concat([x]):L};
 function typePicked(el){if(el.value!=='__new')return;const t=(prompt('اكتب نوع الفستان الجديد')||'').trim();if(t){meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t);const o=document.createElement('option');o.textContent=t;el.insertBefore(o,el.lastElementChild);el.value=t}else el.value=''}
@@ -93,7 +102,7 @@ function list(){window._scr='list';
   ${un?`<div class="warn">${un} فستان لسه ما اتبعتوش للكمبيوتر</div>`:(D.length?'<div class="msg">كل الفساتين اتبعتت ✔</div>':'')}
   <div id="L">${L.map(row).join('')||'<div class="mut" style="margin:20px 0">لسه مفيش فساتين. اضغط "+ فستان جديد".</div>'}</div></div>
   <div class="bar"><button class="btn y" onclick="edit(null)">+ فستان جديد</button><button class="btn g" onclick="exportFile()">إرسال للكمبيوتر</button></div>
-  <div class="wrap"><button class="btn" onclick="store()">🏬 شاشة المخزن</button><button class="btn y" onclick="bk()">🔍 الحجوزات والعملاء</button><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
+  <div class="wrap"><button class="btn g" onclick="hub()">🏠 الرئيسية</button><button class="btn" onclick="store()">🏬 شاشة المخزن</button><button class="btn y" onclick="bk()">🔍 الحجوزات والعملاء</button><button class="btn y" onclick="cat()">📖 كتالوج الفساتين</button><button class="btn w" onclick="more()">نسخة احتياطية / استرجاع</button></div>`;
 }
 
 
@@ -178,18 +187,18 @@ function store(){window._scr='store';
     let rows=pc.dresses.filter(d=>d.st!=='sold').map(d=>[d,act.filter(b=>b.dressId===d.id&&inW(b))]);
     if(!stAllD)rows=rows.filter(r=>r[1].length);
     const cw=span>14?24:36,col=b=>b.late>0?'#7a1410':b.st==='out'?'#c0392b':'#d4a24c';
-    const head=days.map(k=>{const dt=new Date(k+'T12:00:00');return `<th style="min-width:${cw}px;font-size:12px;font-weight:normal;padding:2px 0;${k===t?'background:#5a2a3c;color:#fff;border-radius:6px':''}">${+k.slice(8)}<br><span style="font-size:10px">${['ح','ن','ث','ر','خ','ج','س'][dt.getDay()]}</span></th>`}).join('');
+    const head=days.map(k=>{const dt=new Date(k+'T12:00:00');return `<th style="min-width:${cw}px;font-size:12px;font-weight:normal;padding:2px 0;${k===t?'background:#1f4e8c;color:#fff;border-radius:6px':''}">${+k.slice(8)}<br><span style="font-size:10px">${['ح','ن','ث','ر','خ','ج','س'][dt.getDay()]}</span></th>`}).join('');
     const trs=rows.map(([d,L])=>{const cells=days.map(k=>{const b=L.find(x=>x.out<=k&&er(x)>=k);
       if(!b)return `<td style="background:${k===t?'#f6e9ee':'#fff'}"></td>`;
       const f=b.out===k,l=er(b)===k;
       return `<td onclick="stD='${esc(b.id)}';store()" style="background:${col(b)};${f?'border-radius:0 12px 12px 0;':''}${l?'border-radius:12px 0 0 12px;':''}${stD===b.id?'outline:3px solid #222;':''}${b.late>0&&k>=t?'':''}"></td>`}).join('');
-      return `<tr><td style="position:sticky;right:0;background:#fff;z-index:2;padding:4px 6px;min-width:150px;box-shadow:-2px 0 4px #0002"><div style="display:flex;gap:6px;align-items:center">${d.photo?`<img src="${d.photo}" style="width:38px;height:50px;object-fit:cover;border-radius:6px">`:'<div style="width:38px;height:50px;background:#f0e4e8;border-radius:6px"></div>'}<div style="font-size:14px;line-height:1.3"><b>${esc(d.id)}</b><br>${esc([d.type,d.color].filter(Boolean).join(' - '))}</div></div></td>${cells}</tr>`}).join('');
+      return `<tr><td style="position:sticky;right:0;background:#fff;z-index:2;padding:4px 6px;min-width:150px;box-shadow:-2px 0 4px #0002"><div style="display:flex;gap:6px;align-items:center">${d.photo?`<img src="${d.photo}" style="width:38px;height:50px;object-fit:cover;border-radius:6px">`:'<div style="width:38px;height:50px;background:#e6edf7;border-radius:6px"></div>'}<div style="font-size:14px;line-height:1.3"><b>${esc(d.id)}</b><br>${esc([d.type,d.color].filter(Boolean).join(' - '))}</div></div></td>${cells}</tr>`}).join('');
     const sel=stD&&act.find(b=>b.id===stD);
     const rg=x=>fd(x);
     body=`<h3>جدول الفساتين</h3><div style="display:flex;gap:6px"><button class="btn w" style="flex:1" onclick="stM='${addD(st0,span>14?-14:-7)}';stD=null;store()">›</button><button class="btn w" style="flex:2" onclick="stM=null;stD=null;store()">النهارده</button><button class="btn w" style="flex:1" onclick="stM='${addD(st0,span>14?14:7)}';stD=null;store()">‹</button></div>
     <div style="display:flex;gap:6px"><button class="btn ${span===14?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stSpan=14;store()">أسبوعين</button><button class="btn ${span===30?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stSpan=30;store()">شهر</button><button class="btn ${stAllD?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stAllD=!stAllD;store()">${stAllD?'كل الفساتين':'اللي عليها حجز'}</button></div>
     <div class="mut">من ${rg(days[0])} إلى ${rg(days[span-1])} &nbsp; <span style="color:#c0392b">■</span> بره &nbsp;<span style="color:#d4a24c">■</span> محجوز &nbsp;<span style="color:#7a1410">■</span> متأخر</div>
-    <div style="overflow-x:auto;margin:8px -14px;padding:0 14px"><table style="border-collapse:separate;border-spacing:0 3px;width:max-content" dir="rtl"><thead><tr><th style="position:sticky;right:0;background:#faf5f3;z-index:3"></th>${head}</tr></thead><tbody>${trs||'<tr><td class="mut">مفيش حجوزات في الفترة دي</td></tr>'}</tbody></table></div>
+    <div style="overflow-x:auto;margin:8px -14px;padding:0 14px"><table style="border-collapse:separate;border-spacing:0 3px;width:max-content" dir="rtl"><thead><tr><th style="position:sticky;right:0;background:#f3f6fb;z-index:3"></th>${head}</tr></thead><tbody>${trs||'<tr><td class="mut">مفيش حجوزات في الفترة دي</td></tr>'}</tbody></table></div>
     ${sel?`<div style="background:#fff;border-right:6px solid ${col(sel)};padding:10px;border-radius:8px"><b>${esc(sel.dressId)}</b> - ${esc(sel.name)}<div>خروج: ${rg(sel.out)} &nbsp; رجوع: ${rg(sel.ret)}</div><div class="mut">${sel.st==='out'?'بره حاليًا':'محجوز'}${sel.late>0?' - متأخر '+sel.late+' يوم':''}</div></div>`:'<div class="mut">اضغط على أي شريط لتفاصيل الحجز</div>'}`}
   else if(stF==='fac'){body=facBody(pc,false)}
   else{
@@ -209,7 +218,7 @@ let stAll=0;
 /* ===== الحجوزات والعملاء (من الكمبيوتر، قراءة فقط) ===== */
 let bkF='out',bkQ='',bkAuto=0,bkMsg='';
 const fd=x=>x?String(x).split('-').reverse().slice(0,2).join('/'):'';
-function scr(){const f={store:store,bk:bk,fac:fac,girl:girl,lock:lockScr}[window._scr];if(f)f()}
+function scr(){const f={hub:hub,store:store,bk:bk,fac:fac,girl:girl,lock:lockScr}[window._scr];if(f)f()}
 function autoSync(){if(meta.sync&&!bkAuto){bkAuto=1;bkSync(false)}}
 let qBusy=false;
 async function post_(body){const y=meta.sync;const r=await fetch(y.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({code:y.t},body))});return await r.json()}
@@ -337,12 +346,12 @@ async function catImg(){
   const files=[],W=1200,H=1700,pad=30,cw=(W-pad*3)/2,ch=(H-150-pad*4)/3;
   for(let p=0;p*6<L.length;p++){
     const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
-    x.fillStyle='#faf5f3';x.fillRect(0,0,W,H);x.direction='rtl';x.textAlign='center';x.fillStyle='#5a2a3c';x.font='bold 48px Tahoma,Arial,sans-serif';x.fillText('ميس ميرنا - كتالوج الفساتين',W/2,80);
+    x.fillStyle='#f3f6fb';x.fillRect(0,0,W,H);x.direction='rtl';x.textAlign='center';x.fillStyle='#1f4e8c';x.font='bold 48px Tahoma,Arial,sans-serif';x.fillText('ميس ميرنا - كتالوج الفساتين',W/2,80);
     const part=L.slice(p*6,p*6+6);
     for(let i=0;i<part.length;i++){
       const d=part[i],col=i%2,row=Math.floor(i/2),cx=W-pad-cw-col*(cw+pad),cy=130+pad+row*(ch+pad);
       x.fillStyle='#fff';x.fillRect(cx,cy,cw,ch);x.strokeStyle='#bbb';x.strokeRect(cx,cy,cw,ch);
-      const ih=ch-170;x.fillStyle='#f0e4e8';x.fillRect(cx,cy,cw,ih);
+      const ih=ch-170;x.fillStyle='#e6edf7';x.fillRect(cx,cy,cw,ih);
       const im=await loadImg(d.photo);
       if(im){const k=Math.max(cw/im.width,ih/im.height),sw=cw/k,sh=ih/k;x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,cx,cy,cw,ih)}
       else{x.fillStyle='#a88';x.font='26px Tahoma,Arial,sans-serif';x.textAlign='center';x.fillText('بدون صورة',cx+cw/2,cy+ih/2)}
