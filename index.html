@@ -60,11 +60,18 @@ async function boot(){
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
   if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(!meta.dev){meta.dev='ph-'+uid();await persist()}
-  if(!meta.name)return askName();
-  if(window._linked){window._linked=0;alert('تم ربط المزامنة');bk();return}
-  if(meta.home==='store'||location.hash==='#store')return store();
-  list();
+  if(!meta.name&&!window._linked&&!(meta.role&&meta.role!=='owner'))return askName();
+  if(window._linked){window._linked=0;window._goHome=1;alert('تم ربط المزامنة');bk();return}
+  home();
 }
+function home(){const r=meta.role;
+  if(meta.locked)return lockScr();
+  if(r==='store'||r==='supervisor'){stF='out';return store()}
+  if(r==='factory')return fac();
+  if(r==='girl')return girl();
+  if(meta.home==='store'||location.hash==='#store')return store();
+  list()}
+const isOwner=()=>!meta.role||meta.role==='owner';
 const types=x=>{const L=BASE.concat((meta.types||[]).filter(t=>!BASE.includes(t)));return x&&!L.includes(x)?L.concat([x]):L};
 function typePicked(el){if(el.value!=='__new')return;const t=(prompt('اكتب نوع الفستان الجديد')||'').trim();if(t){meta.types=meta.types||[];if(!types().includes(t))meta.types.push(t);const o=document.createElement('option');o.textContent=t;el.insertBefore(o,el.lastElementChild);el.value=t}else el.value=''}
 const code=n=>'D-'+String(n).padStart(3,'0');
@@ -90,6 +97,44 @@ function list(){window._scr='list';
 }
 
 
+const STP=[['prep','حضّرته'],['stored','دخل المخزن'],['fsent','راح المصنع'],['fdone','المصنع خلّص'],['fback','رجع من المصنع']];
+const hmt=t=>{if(!t)return '';const d=new Date(t);return isNaN(d)?'':d.toLocaleTimeString('ar-EG',{hour:'numeric',minute:'2-digit'})+' '+d.toLocaleDateString('ar-EG',{day:'numeric',month:'numeric'})};
+function stSteps(b){const c=((meta.pc||{}).steps||{})[b.id]||{},can=meta.role==='store';
+  const chip=(l,x)=>`<span style="background:#2d7d4f;color:#fff;border-radius:8px;padding:3px 8px;font-size:13px">✔ ${l}${x.who?' · '+esc(x.who):''}</span>`;
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${STP.map(([k,l])=>{const x=c[k];
+    if(!can||k==='fdone')return x?chip(l,x):'';
+    return `<button class="btn ${x?'g':'w'}" style="width:auto;flex:1 1 45%;font-size:15px;padding:8px 4px;margin:0" onclick="event.stopPropagation();stepSet('${esc(b.id)}','${k}',${x?0:1})">${x?'✔ ':''}${l}${x&&x.at?'<br><span style="font-size:11px">'+hmt(x.at)+'</span>':''}</button>`}).join('')}</div>`}
+async function stepSet(bk,step,on){if(!on&&!confirm('إلغاء الخطوة دي؟'))return;
+  const op={id:uid(),k:'step',bk,step,on,at:new Date().toISOString()};
+  const st=meta.pc.steps=meta.pc.steps||{},c=st[bk]=st[bk]||{};if(on)c[step]={at:op.at,who:meta.uname||meta.name||''};else delete c[step];
+  meta.q=meta.q||[];meta.q.push(op);await persist();scr();await flushQ();scr()}
+function facBody(pc,can){const wo=pc.wo||[],S=pc.steps||{};
+  return `<h3>🏭 شغل المصنع (${wo.length})</h3>`+(wo.map(b=>{const m=b.m||{},c=S[b.id]||{};
+    return `<div class="dc" style="display:block"><b>${esc(b.dressId)}</b> <span class="mut">حجز ${esc(b.id)}</span> ${c.fdone?'<span style="background:#2d7d4f;color:#fff;border-radius:8px;padding:1px 8px;font-size:12px">✔ خلّص</span>':''}
+    <div>${esc([b.desc,b.type,b.color].filter(Boolean).join(' - '))}</div><div class="mut">العميلة: ${esc(b.name||'')} · خروج ${fd(b.out)}${b.body?' · بدي: '+esc(b.body):''}</div>
+    <table style="width:100%;font-size:14px;text-align:center;border-collapse:collapse"><tr><td>صدر</td><td>وسط</td><td>كتف</td><td>دوران كم</td><td>طول كم</td></tr><tr style="font-weight:bold"><td>${esc(m.c||'-')}</td><td>${esc(m.w||'-')}</td><td>${esc(m.s||'-')}</td><td>${esc(m.r||'-')}</td><td>${esc(m.l||'-')}</td></tr></table>
+    ${b.notes?`<div style="background:#fff3cd;border-radius:8px;padding:6px 8px;margin-top:4px">تعديلات: ${esc(b.notes)}</div>`:''}
+    ${can?`<button class="btn ${c.fdone?'g':'y'}" style="margin-top:6px" onclick="stepSet('${esc(b.id)}','fdone',${c.fdone?0:1})">${c.fdone?'✔ خلّصت (دوس للتراجع)':'✔ خلّصت وجاهز'}</button>`:''}</div>`}).join('')||'<div class="mut">مفيش شغل في المصنع</div>')}
+function fac(){window._scr='fac';autoSync();const pc=meta.pc;
+  if(!pc){$('#v').innerHTML=`<div class="wrap"><h3>🏭 المصنع</h3><div class="mut">${esc(bkMsg)||'لسه مفيش بيانات. دوس تحديث.'}</div><button class="btn g" onclick="bkAuto=0;fac()">🔄 تحديث</button></div>`;return}
+  $('#v').innerHTML=`<div class="wrap">${meta.sync?`<button class="btn g" style="font-size:24px;padding:18px" onclick="bkAuto=0;fac()">🔄 تحديث</button>`:''}<div class="mut">${esc(bkMsg)}</div>${facBody(pc,meta.role==='factory')}<div class="mut" style="margin-top:12px">${esc(meta.uname||'')}</div></div>`}
+let gT='del';
+function girl(){window._scr='girl';autoSync();const pc=meta.pc;
+  if(!pc){$('#v').innerHTML=`<div class="wrap"><div class="mut">${esc(bkMsg)||'لسه مفيش بيانات.'}</div><button class="btn g" style="font-size:24px;padding:18px" onclick="bkAuto=0;girl()">🔄 تحديث</button></div>`;return}
+  const me=pc.me||{},del=me.del||[];
+  const tb=(k,l)=>`<button class="btn ${gT===k?'':'w'}" style="flex:1;padding:12px 2px;font-size:17px" onclick="gT='${k}';girl()">${l}</button>`;
+  let body='';
+  if(gT==='del'){body=`<h3>تسليماتي الجاية (${del.length})</h3>`+(del.map(b=>`<div class="dc" style="display:block"><b>${esc(b.dressId)}</b> <span class="mut">حجز ${esc(b.id)}</span> ${b.sale?'<span style="background:#555;color:#fff;border-radius:8px;padding:1px 8px;font-size:12px">بيع</span>':''}
+    <div>${esc([b.desc,b.type,b.color].filter(Boolean).join(' - '))}</div><div><b>${esc(b.name)}</b> ${b.phone?`<a href="tel:${esc(b.phone)}" style="direction:ltr;display:inline-block">${esc(b.phone)}</a>`:''}</div>
+    <div class="mut">تسليم ${fd(b.out)}${b.ret?' · رجوع '+fd(b.ret):''}${b.body?' · بدي: '+esc(b.body):''}</div><div>الباقي على العميلة: <b>${b.rem}</b></div>${b.notes?`<div style="background:#fff3cd;border-radius:8px;padding:6px 8px;margin-top:4px">${esc(b.notes)}</div>`:''}</div>`).join('')||'<div class="mut">مفيش تسليمات جاية</div>')}
+  else if(gT==='pay'){body=me.has?`<h3>سلفي والباقي - ${esc(me.month||'')}</h3><div class="dc" style="display:block;font-size:20px"><div>الأساسي: <b>${me.base}</b></div><div>العمولة: <b>${me.comm}</b></div><div>السلف: <b>${me.adv}</b></div><hr><div>الباقي من مرتبي: <b style="color:#2d7d4f;font-size:26px">${me.rem}</b></div></div>`:'<div class="warn">مفيش مرتب مسجل ليكي لسه. كلّمي صاحب المحل.</div>'}
+  else{const pend=(meta.q||[]).filter(o=>o.k==='note'),reqs=(me.reqs||[]).slice().reverse();
+    body=`<h3>ملاحظة / طلب تعديل</h3><div class="mut">الطلب بيروح لصاحب المحل ويوافق عليه.</div><label>على حجز (اختياري)</label><select id="g_bk"><option value="">بدون</option>${del.map(b=>`<option value="${esc(b.id)}">${esc(b.id)} - ${esc(b.name)}</option>`).join('')}</select><label>الملاحظة</label><textarea id="g_t" rows="3"></textarea><button class="btn g" onclick="noteSend()">إرسال</button>
+    ${pend.map(o=>`<div class="warn">⏳ لسه ما اتبعتش: ${esc(o.text)}</div>`).join('')}${reqs.map(r=>`<div class="dc" style="display:block"><div>${esc(r.text)}</div><div>${r.st==='ok'?'✔ موافق':r.st==='no'?'✘ مرفوض':'⏳ مستني الموافقة'}</div></div>`).join('')}`}
+  $('#v').innerHTML=`<div class="wrap">${meta.sync?`<button class="btn g" style="font-size:24px;padding:18px" onclick="bkAuto=0;girl()">🔄 تحديث</button>`:''}<div class="mut">${esc(bkMsg)}</div><div style="display:flex;gap:6px;margin:8px 0">${tb('del','📦 تسليماتي')}${tb('pay','💰 سلفي والباقي')}${tb('note','✏ ملاحظة')}</div>${body}<div class="mut" style="margin-top:12px">${esc(meta.uname||'')}</div></div>`}
+async function noteSend(){const t=($('#g_t').value||'').trim();if(!t)return alert('اكتبي الملاحظة');
+  const op={id:uid(),k:'note',bk:$('#g_bk').value,text:t,at:new Date().toISOString()};meta.q=meta.q||[];meta.q.push(op);await persist();gT='note';girl();await flushQ();bkAuto=0;girl()}
+
 /* ===== شاشة المخزن (قراءة فقط، من غير أسعار) ===== */
 let stF='out',stM=null,stD=null,stSpan=14,stAllD=false;
 const addD=(x,n)=>{const d=new Date(x+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -105,7 +150,7 @@ function stPrep(b,act,ds){const d=ds[b.dressId]||{};if((d.qty||1)>1)return '<div
   const gap=Math.round((new Date(b.out+'T12:00:00')-new Date(pv.ret+'T12:00:00'))/864e5);
   return `<div style="background:#fff3cd;border-radius:8px;padding:4px 8px;margin-top:4px"><b>خد بالك:</b> الفستان لسه ${pv.st==='out'?'عند':'محجوز لـ'} ${esc(pv.name)}، راجع ${fd(pv.ret)} وخارج ${fd(b.out)}${gap<0?' - <b>الحجزين متداخلين</b>':gap<=1?' - <b>الفرق '+(gap===0?'نفس اليوم':'يوم واحد')+'</b>':''}${pv.late>0?' - <b>وهي متأخرة '+pv.late+' يوم</b>':''}</div>`}
 function store(){window._scr='store';
-  if(meta.sync&&!bkAuto){bkAuto=1;bkSync(false)}
+  autoSync();
   const X=stData();
   if(!X){$('#v').innerHTML=`<div class="wrap"><h3>🏬 شاشة المخزن</h3><div class="mut">لسه مفيش بيانات من المحل. اربط الكود أو اطلب الملف من 🔍 الحجوزات والعملاء.</div><button class="btn w" onclick="list()">رجوع</button></div>`;return}
   const {pc,ds,act,dbl,late,sold}=X,t=today(),w=addD(t,7);
@@ -117,11 +162,11 @@ function store(){window._scr='store';
   const tOut=act.filter(b=>b.st==='booked'&&b.out===t),tRet=act.filter(b=>b.st==='out'&&b.ret===t);
   tOut.forEach(b=>al.push(['#d4a24c','📤 خروج النهارده',`<b>${esc(b.dressId)}</b> - ${esc(b.name)}`]));
   tRet.forEach(b=>al.push(['#2d7d4f','📥 راجع النهارده',`<b>${esc(b.dressId)}</b> - ${esc(b.name)}`]));
-  const btn=(k,l)=>`<button class="btn ${stF===k?'':'w'}" style="flex:1;padding:12px 2px;font-size:17px" onclick="stF='${k}';store()">${l}</button>`;
+  const btn=(k,l)=>`<button class="btn ${stF===k?'':'w'}" style="flex:1;padding:12px 2px;font-size:17px" onclick="stF='${k}';store()">${l}</button>`;const canFac=meta.role!=='store';
   let body='';
   if(stF==='out'){
     const L=act.filter(b=>b.st==='out'||b.out<=w).sort((a,b)=>a.out<b.out?-1:1);
-    body=`<h3>الخروج (من النهارده لـ 7 أيام + اللي بره)</h3>`+(L.map(b=>stCard(ds[b.dressId]||{id:b.dressId},b.st==='out'?'بره':'خروج '+fd(b.out),b.st==='out'?'#c0392b':'#d4a24c',`<div>${esc(b.name)}</div><div class="mut">يرجع ${fd(b.ret)}${b.late>0?' - متأخر '+b.late+' يوم':''}</div>${b.st==='booked'?stPrep(b,act,ds):''}`)).join('')||'<div class="mut">مفيش خروج قريب</div>')}
+    body=`<h3>الخروج (من النهارده لـ 7 أيام + اللي بره)</h3>`+(L.map(b=>stCard(ds[b.dressId]||{id:b.dressId},b.st==='out'?'بره':'خروج '+fd(b.out),b.st==='out'?'#c0392b':'#d4a24c',`<div>${esc(b.name)}</div><div class="mut">يرجع ${fd(b.ret)}${b.late>0?' - متأخر '+b.late+' يوم':''}</div>${b.st==='booked'?stPrep(b,act,ds):''}${stSteps(b)}`)).join('')||'<div class="mut">مفيش خروج قريب</div>')}
   else if(stF==='inv'){
     const outN={};act.filter(b=>b.st==='out').forEach(b=>outN[b.dressId]=(outN[b.dressId]||0)+1);
     const exp=pc.dresses.filter(d=>d.st!=='sold').map(d=>[d,(d.qty||1)-(outN[d.id]||0)]).filter(x=>x[1]>0);
@@ -146,37 +191,57 @@ function store(){window._scr='store';
     <div class="mut">من ${rg(days[0])} إلى ${rg(days[span-1])} &nbsp; <span style="color:#c0392b">■</span> بره &nbsp;<span style="color:#d4a24c">■</span> محجوز &nbsp;<span style="color:#7a1410">■</span> متأخر</div>
     <div style="overflow-x:auto;margin:8px -14px;padding:0 14px"><table style="border-collapse:separate;border-spacing:0 3px;width:max-content" dir="rtl"><thead><tr><th style="position:sticky;right:0;background:#faf5f3;z-index:3"></th>${head}</tr></thead><tbody>${trs||'<tr><td class="mut">مفيش حجوزات في الفترة دي</td></tr>'}</tbody></table></div>
     ${sel?`<div style="background:#fff;border-right:6px solid ${col(sel)};padding:10px;border-radius:8px"><b>${esc(sel.dressId)}</b> - ${esc(sel.name)}<div>خروج: ${rg(sel.out)} &nbsp; رجوع: ${rg(sel.ret)}</div><div class="mut">${sel.st==='out'?'بره حاليًا':'محجوز'}${sel.late>0?' - متأخر '+sel.late+' يوم':''}</div></div>`:'<div class="mut">اضغط على أي شريط لتفاصيل الحجز</div>'}`}
+  else if(stF==='fac'){body=facBody(pc,false)}
   else{
     const L=pc.dresses.slice().sort((a,b)=>(b.n||0)-(a.n||0));const has=pc.dresses.some(d=>d.n!=null);
     body=`<h3>عدد مرات خروج كل فستان</h3>`+(has?'':'<div class="warn">الملف ده قديم ومفيهوش العدد. حدّث من الكمبيوتر.</div>')+L.map(d=>stCard(d,'',"",`<div style="font-size:22px"><b>${d.n==null?'-':d.n}</b> <span class="mut">مرة خرج</span></div>`)).join('')}
   $('#v').innerHTML=`<div class="wrap">${meta.sync?`<button class="btn g" style="font-size:24px;padding:18px" onclick="bkAuto=0;store()">🔄 تحديث</button>`:''}<div class="mut">${esc(bkMsg)}</div>
   <h3 style="margin:4px 0">🔔 تنبيهات (${al.length})</h3>${al.slice(0,stAll?99:3).map(a=>`<div style="background:#fff;border-right:6px solid ${a[0]};padding:8px 10px;border-radius:8px;margin:6px 0"><b>${a[1]}</b><div>${a[2]}</div></div>`).join('')||'<div class="msg">مفيش تنبيهات ✔</div>'}${al.length>3&&!stAll?`<button class="btn w" onclick="stAll=1;store()">كل التنبيهات (${al.length})</button>`:''}
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0">${btn('out','📤 الخروج')}${btn('inv','📋 الجرد')}${btn('cal','📅 جدول الفساتين')}${btn('cnt','🔢 عدد الخروج')}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0">${btn('out','📤 الخروج')}${btn('inv','📋 الجرد')}${btn('cal','📅 جدول الفساتين')}${btn('cnt','🔢 عدد الخروج')}${canFac?btn('fac','🏭 المصنع'):''}</div>
   ${body}
   <div class="mut" style="margin-top:12px">آخر تحديث من المحل: ${at?at.toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):''}${age>=1?' <b style="color:#c0392b">(من '+age+' يوم)</b>':''}</div>
   ${meta.sync?`<button class="btn g" onclick="bkAuto=0;store()">🔄 تحديث</button>`:'<div class="mut">مفيش ربط. اربط من 🔍 الحجوزات والعملاء.</div>'}
-  <label style="display:flex;gap:8px;align-items:center;font-size:16px"><input type="checkbox" style="width:24px;height:24px" ${meta.home==='store'?'checked':''} onchange="meta.home=this.checked?'store':'';persist()">افتح على شاشة المخزن دايمًا</label>
-  <button class="btn w" onclick="list()">رجوع للفساتين</button></div>`;
+  ${isOwner()?`<label style="display:flex;gap:8px;align-items:center;font-size:16px"><input type="checkbox" style="width:24px;height:24px" ${meta.home==='store'?'checked':''} onchange="meta.home=this.checked?'store':'';persist()">افتح على شاشة المخزن دايمًا</label>
+  <button class="btn w" onclick="list()">رجوع للفساتين</button>`:`<div class="mut">${esc(meta.uname||'')}</div>`}</div>`;
 }
 let stAll=0;
 
 /* ===== الحجوزات والعملاء (من الكمبيوتر، قراءة فقط) ===== */
 let bkF='out',bkQ='',bkAuto=0,bkMsg='';
 const fd=x=>x?String(x).split('-').reverse().slice(0,2).join('/'):'';
-async function bkSync(manual){
-  const y=meta.sync;if(!y)return;bkMsg='...جاري التحديث';if(manual)bk();
+function scr(){const f={store:store,bk:bk,fac:fac,girl:girl,lock:lockScr}[window._scr];if(f)f()}
+function autoSync(){if(meta.sync&&!bkAuto){bkAuto=1;bkSync(false)}}
+let qBusy=false;
+async function post_(body){const y=meta.sync;const r=await fetch(y.u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({code:y.t},body))});return await r.json()}
+async function flushQ(){const y=meta.sync;if(!y||qBusy||!(meta.q||[]).length)return;qBusy=true;
+  try{while((meta.q||[]).length){const op=meta.q[0];let j;
+    try{j=await post_({op})}catch(e){break}
+    if(!j.ok&&(j.error==='revoked'||j.error==='token')&&meta.role&&meta.role!=='owner'){qBusy=false;return lock()}
+    if(!j.ok){if(j.error==='denied'||j.error==='bad'){meta.q.shift();await persist();continue}break}
+    meta.q.shift();
+    if(op.k==='dress'&&j.code){const d=D.find(x=>x.uid===op.dress.uid);if(d&&!d.code){d.code=j.code}}
+    if(op.k==='step'&&!(meta.q||[]).length&&j.steps&&meta.pc)meta.pc.steps=j.steps;
+    await persist()}}catch(e){}
+  qBusy=false}
+async function bkSync(manual){const y=meta.sync;if(!y)return;bkMsg='...جاري التحديث';if(manual)scr();
+  await flushQ();
   try{const r=await fetch(y.u+(y.u.includes('?')?'&':'?')+'t='+encodeURIComponent(y.t));const j=await r.json();
-    if(!j.ok)throw new Error(j.error==='token'?'كود الربط قديم، اربط من جديد':j.error==='empty'?'لسه الكمبيوتر ماسجلش بيانات':'رد غير متوقع');
-    meta.pc=j.data;meta.syncAt=Date.now();await persist();bkMsg=''}
+    if(!j.ok){if(j.error==='revoked'||(j.error==='token'&&meta.role&&meta.role!=='owner'))return lock();
+      throw new Error(j.error==='token'?'كود الربط قديم، اربط من جديد':j.error==='empty'?'لسه الكمبيوتر ماسجلش بيانات':'رد غير متوقع')}
+    const steps=meta.pc&&(meta.q||[]).length?meta.pc.steps:null;
+    meta.pc=j.data;if(steps)meta.pc.steps=steps;meta.role=j.role||(j.data&&j.data.role)||'owner';meta.uname=j.name||'';if(!meta.name&&meta.uname)meta.name=meta.uname;meta.locked=false;meta.syncAt=Date.now();await persist();bkMsg=''}
   catch(e){bkMsg='⚠ ما قدرناش نحدث ('+((e&&e.message&&!/fetch|Network|Load/i.test(e.message))?e.message:'مفيش إنترنت')+'). معروض آخر نسخة محفوظة.'}
-  if(window._scr==='store')store();else bk()}
+  if(window._goHome){window._goHome=0;if(meta.role&&meta.role!=='owner')return home()}
+  scr()}
+async function lock(){meta.locked=true;delete meta.pc;await persist();window._scr='lock';lockScr()}
+function lockScr(){window._scr='lock';$('#v').innerHTML=`<div class="wrap"><h3>🔒 الدخول اتقفل</h3><div class="mut">الدخول بتاعك اتقفل أو الكود اتغير. كلّم صاحب المحل.</div><button class="btn g" onclick="meta.locked=false;bkAuto=0;bkSync(true)">جرّب تاني</button></div>`}
 async function bkLink(code){code=(code||'').trim();if(code.includes('#link='))code=code.split('#link=')[1];
   if(!code.startsWith('MM1:'))return alert('الكود مش صحيح');
   try{const o=JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));if(!o.u||!o.t||!/^https:\/\/script\.google\.com\//.test(o.u))throw 1;meta.sync={u:o.u,t:o.t};await persist();bkAuto=1;bkSync(true)}catch(e){alert('الكود مش صحيح')}}
 async function bkUnlink(){if(!confirm('فصل الربط؟ هتفضل آخر نسخة محفوظة.'))return;delete meta.sync;await persist();bk()}
 function bkLinkBox(){return meta.sync?`<button class="btn g" onclick="bkSync(true)">🔄 تحديث الآن</button>`:`<div class="mut" style="margin-top:8px">لو المحل بعتلك كود ربط، الصقه هنا عشان التحديث يبقى تلقائي:</div><input id="lk" placeholder="MM1:..." style="direction:ltr"><button class="btn y" onclick="bkLink($('#lk').value)">ربط</button>`}
 function bk(){window._scr='bk';
-  if(meta.sync&&!bkAuto){bkAuto=1;bkSync(false)}
+  autoSync();
   const pc=meta.pc;
   if(!pc){$('#v').innerHTML=`<div class="wrap"><h3>الحجوزات والعملاء</h3><div class="mut">لسه مفيش بيانات من الكمبيوتر. اربط بكود المزامنة، أو اطلب ملف الحجوزات على واتساب واختاره.</div><div class="mut">${esc(bkMsg)}</div>${bkLinkBox()}
   <input type="file" id="pcf" accept=".txt,.json,text/plain,application/json" hidden onchange="bkLoad(this)"><button class="btn g" onclick="$('#pcf').click()">📥 تحديث من الكمبيوتر (ملف)</button><button class="btn w" onclick="list()">رجوع</button></div>`;return}
@@ -231,8 +296,11 @@ async function saveD(again){
   const g=i=>$('#'+i).value.trim();
   cur.old=g('o');cur.desc=g('d');cur.color=g('l');cur.type=$('#t').value==='__new'?'':$('#t').value;cur.notes=g('n');cur.qty=Math.max(1,parseInt(g('q2'))||1);cur.photo=photo||'';cur.mod=new Date().toISOString();if(!cur.by)cur.by=meta.name||'';
   if(!cur.old&&!cur.desc&&!cur.photo)return alert('اكتب وصف الفستان أو الكود القديم أو صوّره');
+  const dup=cur.old&&(D.some(d=>d.uid!==cur.uid&&d.old===cur.old)||((meta.pc||{}).dresses||[]).some(d=>d.old===cur.old));
+  if(dup&&!confirm('الكود القديم '+cur.old+' موجود قبل كده على فستان تاني. تكمل؟'))return;
   if(!D.some(d=>d.uid===cur.uid))D.unshift(cur);
-  await persist();if(again)edit(null);else list();
+  await persist();
+  if(meta.sync&&(isOwner()||meta.role==='store')){const x=cur,op={id:'dr-'+x.uid+'-'+x.mod,k:'dress',dress:{uid:x.uid,mod:'',code:x.code||'',old:x.old,desc:x.desc,type:x.type,color:x.color,rent:x.rent||'',sale:x.sale||'',notes:x.notes,qty:x.qty||1}};meta.q=(meta.q||[]).filter(o=>!(o.k==='dress'&&o.dress.uid===x.uid));meta.q.push(op);await persist();flushQ().then(()=>persist())}if(again)edit(null);else list();
 }
 async function delD(){if(!confirm('حذف الفستان؟'))return;D=D.filter(d=>d.uid!==cur.uid);await persist();list()}
 function build(){return {app:'dokkan-elfarah-mobile',v:1,at:new Date().toISOString(),dev:{id:meta.dev,name:meta.name||''},types:types(),dresses:D.map(d=>({uid:d.uid,mod:d.mod||'',loc:d.loc||'',code:d.code||'',qty:d.qty||1,old:d.old,desc:d.desc,type:d.type||'',color:d.color,rent:d.rent,sale:d.sale,notes:d.notes,by:d.by||'',photo:d.photo}))}}
