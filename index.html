@@ -210,7 +210,7 @@ function store(){window._scr='store';
   let body='';
   if(stF==='out'){
     const L=act.filter(b=>b.st==='out'||b.out<=w).sort((a,b)=>a.out<b.out?-1:1);
-    body=`<h3>الخروج (من النهارده لـ 7 أيام + اللي بره)</h3>`+(L.map(b=>stCard(ds[b.dressId]||{id:b.dressId},b.st==='out'?'بره':'خروج '+fd(b.out),b.st==='out'?'#c0392b':'#d4a24c',`<div>${esc(b.name)}</div><div class="mut">يرجع ${fd(b.ret)}${b.late>0?' - متأخر '+b.late+' يوم':''}</div>${b.st==='booked'?stPrep(b,act,ds):''}${stSteps(b)}`)).join('')||'<div class="mut">مفيش خروج قريب</div>')}
+    body=`<h3>الخروج (من النهارده لـ 7 أيام + اللي بره)</h3>`+(L.map(b=>stCard(ds[b.dressId]||{id:b.dressId},b.st==='out'?'بره':'خروج '+fd(b.out),b.st==='out'?'#c0392b':'#d4a24c',`<div>${esc(b.name)}</div><div class="mut">📤 تاريخ الخروج: <b>${fd(b.out)}</b> · يرجع ${fd(b.ret)}${b.late>0?' - متأخر '+b.late+' يوم':''}</div>${b.st==='booked'?stPrep(b,act,ds):''}${stSteps(b)}`)).join('')||'<div class="mut">مفيش خروج قريب</div>')}
   else if(stF==='inv'){
     const outN={};act.filter(b=>b.st==='out').forEach(b=>outN[b.dressId]=(outN[b.dressId]||0)+1);
     const exp=pc.dresses.filter(d=>d.st!=='sold').map(d=>[d,(d.qty||1)-(outN[d.id]||0)]).filter(x=>x[1]>0);
