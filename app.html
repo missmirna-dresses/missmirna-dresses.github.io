@@ -1,0 +1,10 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تحميل التطبيق</title>
+<body style="font-family:sans-serif;text-align:center;padding:30px"><h2>ميس ميرنا</h2><p id=m>جاري تجهيز الملف...</p>
+<button id=b style="font-size:22px;padding:16px 30px;background:#2e7d32;color:#fff;border:0;border-radius:12px" disabled>⬇ حمّل التطبيق</button>
+<script>Promise.all([1,2,3].map(function(i){return fetch("apk"+i+".txt").then(function(r){return r.text()})})).then(function(p){
+var u=atob(p.join("")),a=new Uint8Array(u.length);for(var i=0;i<u.length;i++)a[i]=u.charCodeAt(i);
+var bl=new Blob([a],{type:"application/vnd.android.package-archive"});
+document.getElementById("m").textContent="جاهز ("+Math.round(a.length/1024)+" KB)";
+var bt=document.getElementById("b");bt.disabled=false;bt.onclick=function(){var l=document.createElement("a");l.href=URL.createObjectURL(bl);l.download="MissMirna.apk";document.body.appendChild(l);l.click();};
+}).catch(function(){document.getElementById("m").textContent="تعذّر التحميل، جرّب تاني"});
+</script></body></html>
