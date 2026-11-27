@@ -91,7 +91,7 @@ function list(){window._scr='list';
 
 
 /* ===== شاشة المخزن (قراءة فقط، من غير أسعار) ===== */
-let stF='out',stM=null,stD=null;
+let stF='out',stM=null,stD=null,stSpan=14,stAllD=false;
 const addD=(x,n)=>{const d=new Date(x+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function stData(){const pc=meta.pc;if(!pc)return null;const ds={};pc.dresses.forEach(d=>ds[d.id]=d);
   const act=pc.bookings.filter(b=>b.st==='out'||b.st==='booked');
@@ -128,19 +128,30 @@ function store(){window._scr='store';
     const tot=exp.reduce((a,x)=>a+x[1],0),o=Object.values(outN).reduce((a,b)=>a+b,0);
     body=`<h3>الجرد (من أرقام السيستم)</h3><div class="two"><div class="msg" style="margin:4px 0"><b style="font-size:28px">${tot}</b><br>المفروض جوه المحل</div><div class="warn" style="margin:4px 0"><b style="font-size:28px">${o}</b><br>بره عند عميلات</div></div><div class="mut">اتحسبت من آخر نسخة. قارنها بالعد الفعلي. المباع (${sold.length}) مش محسوب.</div>`+exp.map(([d,n])=>stCard(d,n>1?n+' قطع':'',"#2d7d4f")).join('')}
   else if(stF==='cal'){
-    const base=stM||t.slice(0,7),[Y,M]=base.split('-').map(Number),first=new Date(Y,M-1,1),dim=new Date(Y,M,0).getDate(),off=(first.getDay()+1)%7;
-    const ev={};act.forEach(b=>{(ev[b.out]=ev[b.out]||{o:0,r:0}).o++;(ev[b.ret]=ev[b.ret]||{o:0,r:0}).r++});
-    let cells='';for(let i=0;i<off;i++)cells+='<div></div>';
-    for(let d=1;d<=dim;d++){const k=base+'-'+String(d).padStart(2,'0'),e=ev[k];cells+=`<div onclick="stD='${k}';store()" style="background:${stD===k?'#f2d7e0':'#fff'};border-radius:8px;padding:4px 0;text-align:center;min-height:52px;${k===t?'outline:2px solid #5a2a3c':''}"><div>${d}</div>${e?`<div style="font-size:12px;line-height:1.2">${e.o?'<span style="color:#b8860b">↑'+e.o+'</span> ':''}${e.r?'<span style="color:#2d7d4f">↓'+e.r+'</span>':''}</div>`:''}</div>`}
-    const pm=(Y,M-2)>=0?new Date(Y,M-2,1):new Date(Y-1,11,1);const nm=new Date(Y,M,1);const ym=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0');
-    const sel=stD&&stD.startsWith(base)?act.filter(b=>b.out===stD||b.ret===stD):[];
-    body=`<h3>التقويم</h3><div style="display:flex;gap:8px;align-items:center"><button class="btn w" style="flex:1" onclick="stM='${ym(pm)}';stD=null;store()">›</button><b style="flex:3;text-align:center">${first.toLocaleDateString('ar-EG',{month:'long',year:'numeric'})}</b><button class="btn w" style="flex:1" onclick="stM='${ym(nm)}';stD=null;store()">‹</button></div><div class="mut">↑ خروج &nbsp; ↓ رجوع</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0" dir="rtl">${['س','ح','ن','ث','ر','خ','ج'].map(x=>`<div class="mut" style="text-align:center">${x}</div>`).join('')}${cells}</div>`+(stD?`<b>${fd(stD)}</b>`+(sel.map(b=>stCard(ds[b.dressId]||{id:b.dressId},b.out===stD?'خروج':'رجوع',b.out===stD?'#d4a24c':'#2d7d4f',`<div>${esc(b.name)}</div>`)).join('')||'<div class="mut">مفيش حاجة اليوم ده</div>'):'<div class="mut">اضغط على يوم عشان تشوف تفاصيله</div>')}
+    const span=stSpan,st0=stM&&/^\d{4}-\d\d-\d\d$/.test(stM)?stM:addD(t,-3),days=[];for(let i=0;i<span;i++)days.push(addD(st0,i));
+    const er=b=>b.st==='out'&&b.late>0&&b.ret<t?t:b.ret,inW=b=>b.out<=days[span-1]&&er(b)>=days[0];
+    let rows=pc.dresses.filter(d=>d.st!=='sold').map(d=>[d,act.filter(b=>b.dressId===d.id&&inW(b))]);
+    if(!stAllD)rows=rows.filter(r=>r[1].length);
+    const cw=span>14?24:36,col=b=>b.late>0?'#7a1410':b.st==='out'?'#c0392b':'#d4a24c';
+    const head=days.map(k=>{const dt=new Date(k+'T12:00:00');return `<th style="min-width:${cw}px;font-size:12px;font-weight:normal;padding:2px 0;${k===t?'background:#5a2a3c;color:#fff;border-radius:6px':''}">${+k.slice(8)}<br><span style="font-size:10px">${['ح','ن','ث','ر','خ','ج','س'][dt.getDay()]}</span></th>`}).join('');
+    const trs=rows.map(([d,L])=>{const cells=days.map(k=>{const b=L.find(x=>x.out<=k&&er(x)>=k);
+      if(!b)return `<td style="background:${k===t?'#f6e9ee':'#fff'}"></td>`;
+      const f=b.out===k,l=er(b)===k;
+      return `<td onclick="stD='${esc(b.id)}';store()" style="background:${col(b)};${f?'border-radius:0 12px 12px 0;':''}${l?'border-radius:12px 0 0 12px;':''}${stD===b.id?'outline:3px solid #222;':''}${b.late>0&&k>=t?'':''}"></td>`}).join('');
+      return `<tr><td style="position:sticky;right:0;background:#fff;z-index:2;padding:4px 6px;min-width:150px;box-shadow:-2px 0 4px #0002"><div style="display:flex;gap:6px;align-items:center">${d.photo?`<img src="${d.photo}" style="width:38px;height:50px;object-fit:cover;border-radius:6px">`:'<div style="width:38px;height:50px;background:#f0e4e8;border-radius:6px"></div>'}<div style="font-size:14px;line-height:1.3"><b>${esc(d.id)}</b><br>${esc([d.type,d.color].filter(Boolean).join(' - '))}</div></div></td>${cells}</tr>`}).join('');
+    const sel=stD&&act.find(b=>b.id===stD);
+    const rg=x=>fd(x);
+    body=`<h3>جدول الفساتين</h3><div style="display:flex;gap:6px"><button class="btn w" style="flex:1" onclick="stM='${addD(st0,span>14?-14:-7)}';stD=null;store()">›</button><button class="btn w" style="flex:2" onclick="stM=null;stD=null;store()">النهارده</button><button class="btn w" style="flex:1" onclick="stM='${addD(st0,span>14?14:7)}';stD=null;store()">‹</button></div>
+    <div style="display:flex;gap:6px"><button class="btn ${span===14?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stSpan=14;store()">أسبوعين</button><button class="btn ${span===30?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stSpan=30;store()">شهر</button><button class="btn ${stAllD?'':'w'}" style="flex:1;font-size:16px;padding:8px" onclick="stAllD=!stAllD;store()">${stAllD?'كل الفساتين':'اللي عليها حجز'}</button></div>
+    <div class="mut">من ${rg(days[0])} إلى ${rg(days[span-1])} &nbsp; <span style="color:#c0392b">■</span> بره &nbsp;<span style="color:#d4a24c">■</span> محجوز &nbsp;<span style="color:#7a1410">■</span> متأخر</div>
+    <div style="overflow-x:auto;margin:8px -14px;padding:0 14px"><table style="border-collapse:separate;border-spacing:0 3px;width:max-content" dir="rtl"><thead><tr><th style="position:sticky;right:0;background:#faf5f3;z-index:3"></th>${head}</tr></thead><tbody>${trs||'<tr><td class="mut">مفيش حجوزات في الفترة دي</td></tr>'}</tbody></table></div>
+    ${sel?`<div style="background:#fff;border-right:6px solid ${col(sel)};padding:10px;border-radius:8px"><b>${esc(sel.dressId)}</b> - ${esc(sel.name)}<div>خروج: ${rg(sel.out)} &nbsp; رجوع: ${rg(sel.ret)}</div><div class="mut">${sel.st==='out'?'بره حاليًا':'محجوز'}${sel.late>0?' - متأخر '+sel.late+' يوم':''}</div></div>`:'<div class="mut">اضغط على أي شريط لتفاصيل الحجز</div>'}`}
   else{
     const L=pc.dresses.slice().sort((a,b)=>(b.n||0)-(a.n||0));const has=pc.dresses.some(d=>d.n!=null);
     body=`<h3>عدد مرات خروج كل فستان</h3>`+(has?'':'<div class="warn">الملف ده قديم ومفيهوش العدد. حدّث من الكمبيوتر.</div>')+L.map(d=>stCard(d,'',"",`<div style="font-size:22px"><b>${d.n==null?'-':d.n}</b> <span class="mut">مرة خرج</span></div>`)).join('')}
-  $('#v').innerHTML=`<div class="wrap"><div class="mut">${esc(bkMsg)}</div>
+  $('#v').innerHTML=`<div class="wrap">${meta.sync?`<button class="btn g" style="font-size:24px;padding:18px" onclick="bkAuto=0;store()">🔄 تحديث</button>`:''}<div class="mut">${esc(bkMsg)}</div>
   <h3 style="margin:4px 0">🔔 تنبيهات (${al.length})</h3>${al.slice(0,stAll?99:3).map(a=>`<div style="background:#fff;border-right:6px solid ${a[0]};padding:8px 10px;border-radius:8px;margin:6px 0"><b>${a[1]}</b><div>${a[2]}</div></div>`).join('')||'<div class="msg">مفيش تنبيهات ✔</div>'}${al.length>3&&!stAll?`<button class="btn w" onclick="stAll=1;store()">كل التنبيهات (${al.length})</button>`:''}
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0">${btn('out','📤 الخروج')}${btn('inv','📋 الجرد')}${btn('cal','📅 التقويم')}${btn('cnt','🔢 عدد الخروج')}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0">${btn('out','📤 الخروج')}${btn('inv','📋 الجرد')}${btn('cal','📅 جدول الفساتين')}${btn('cnt','🔢 عدد الخروج')}</div>
   ${body}
   <div class="mut" style="margin-top:12px">آخر تحديث من المحل: ${at?at.toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):''}${age>=1?' <b style="color:#c0392b">(من '+age+' يوم)</b>':''}</div>
   ${meta.sync?`<button class="btn g" onclick="bkAuto=0;store()">🔄 تحديث</button>`:'<div class="mut">مفيش ربط. اربط من 🔍 الحجوزات والعملاء.</div>'}
